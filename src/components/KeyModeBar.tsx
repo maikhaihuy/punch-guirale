@@ -1,8 +1,10 @@
 "use client";
 
 import { CHROMATIC, MODE_LABELS, type ModeName, type NoteName, randomRoot } from "@/lib/theory";
+import { POSITION_IDS, type PositionId } from "@/lib/positions";
 
 export type DisplayMode = "note" | "degree";
+export type SelectedPosition = "all" | PositionId;
 
 type Props = {
   root: NoteName;
@@ -11,6 +13,8 @@ type Props = {
   onModeChange: (mode: ModeName) => void;
   displayMode: DisplayMode;
   onDisplayModeChange: (mode: DisplayMode) => void;
+  selectedPosition: SelectedPosition;
+  onSelectedPositionChange: (position: SelectedPosition) => void;
 };
 
 const MODE_ORDER: ModeName[] = [
@@ -30,6 +34,8 @@ export function KeyModeBar({
   onModeChange,
   displayMode,
   onDisplayModeChange,
+  selectedPosition,
+  onSelectedPositionChange,
 }: Props) {
   return (
     <div className="flex flex-col gap-2 border-b border-black/10 bg-white/95 px-3 py-2 backdrop-blur-sm dark:border-white/10 dark:bg-black/95">
@@ -84,6 +90,35 @@ export function KeyModeBar({
         >
           {displayMode === "note" ? "Notes" : "Degrees"}
         </button>
+      </div>
+
+      <div className="flex items-center gap-1.5 overflow-x-auto">
+        <span className="shrink-0 text-xs font-medium text-foreground/50">Position</span>
+        <button
+          type="button"
+          onClick={() => onSelectedPositionChange("all")}
+          className={`shrink-0 rounded-md px-2.5 py-1 text-sm font-medium transition-colors ${
+            selectedPosition === "all"
+              ? "bg-foreground text-background"
+              : "text-foreground/70 hover:bg-black/5 dark:hover:bg-white/10"
+          }`}
+        >
+          All
+        </button>
+        {POSITION_IDS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onSelectedPositionChange(id)}
+            className={`shrink-0 rounded-md px-2.5 py-1 text-sm font-medium transition-colors ${
+              selectedPosition === id
+                ? "bg-foreground text-background"
+                : "text-foreground/70 hover:bg-black/5 dark:hover:bg-white/10"
+            }`}
+          >
+            {id}
+          </button>
+        ))}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import type { SelectedPosition } from "@/components/KeyModeBar";
 import type { FretNote } from "@/lib/theory";
@@ -33,15 +33,38 @@ type FretboardNoteProps = {
   label: string | undefined;
   dimmed: boolean;
   showTriadRing: boolean;
+  isEcho: boolean;
   onPlay: () => void;
+  onHoverChange: (name: string | null) => void;
 };
 
 // Active-press state lives here (not CSS `:hover`) so mouse and touch
 // behave identically and the glow lands on the same press that triggers
-// playback, per note-interaction-states.
-function FretboardNote({ note, cx, cy, label, dimmed, showTriadRing, onPlay }: FretboardNoteProps) {
+// playback, per note-interaction-states. Hover/touch also drive
+// `onHoverChange` so sibling same-pitch-class notes elsewhere on the
+// fretboard can render the echo highlight, per pitch-echo-highlighting.
+// `isHovering` (mouse-only) is what excludes *this* note from its own
+// echo styling on hover, since `isEcho` alone would also be true for the
+// note actually under the pointer (it trivially shares its own name).
+const FretboardNote = memo(function FretboardNote({
+  note,
+  cx,
+  cy,
+  label,
+  dimmed,
+  showTriadRing,
+  isEcho,
+  onPlay,
+  onHoverChange,
+}: FretboardNoteProps) {
   const [active, setActive] = useState(false);
-  const clearActive = () => setActive(false);
+  const [isHovering, setIsHovering] = useState(false);
+
+  const clearInteraction = () => {
+    setActive(false);
+    setIsHovering(false);
+    onHoverChange(null);
+  };
 
   const dotClassName = [
     "fret-note",
@@ -49,19 +72,27 @@ function FretboardNote({ note, cx, cy, label, dimmed, showTriadRing, onPlay }: F
       ? "fret-note--root fill-foreground stroke-foreground"
       : "fill-white stroke-foreground/70 dark:fill-black",
     active && "fret-note--active",
+    isEcho && !active && !isHovering && "fret-note--echo",
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
     <g
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") {
+          setIsHovering(true);
+          onHoverChange(note.name);
+        }
+      }}
       onPointerDown={() => {
         setActive(true);
+        onHoverChange(note.name);
         onPlay();
       }}
-      onPointerUp={clearActive}
-      onPointerLeave={clearActive}
-      onPointerCancel={clearActive}
+      onPointerUp={clearInteraction}
+      onPointerLeave={clearInteraction}
+      onPointerCancel={clearInteraction}
       className="cursor-pointer"
       style={{ opacity: dimmed ? 0.28 : 1, transition: "opacity 0.2s ease" }}
     >
@@ -83,7 +114,7 @@ function FretboardNote({ note, cx, cy, label, dimmed, showTriadRing, onPlay }: F
       </text>
     </g>
   );
-}
+});
 
 export function Fretboard({
   fretboard,
@@ -96,6 +127,7 @@ export function Fretboard({
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomFretWidth, setZoomFretWidth] = useState<number | null>(null);
+  const [hoveredNoteName, setHoveredNoteName] = useState<string | null>(null);
 
   // Auto-fit only on an explicit position change (or mount), never on
   // resize/scroll, so it doesn't fight a user's manual scroll/zoom mid-session.
@@ -210,6 +242,7 @@ export function Fretboard({
                 !note.isRoot &&
                 !note.positions?.includes(selectedPosition);
               const showTriadRing = highlightTriad && !!note.isTriadTone && !note.isRoot;
+              const isEcho = note.name === hoveredNoteName;
               return (
                 <FretboardNote
                   key={`note-${stringIndex}-${note.fret}`}
@@ -219,7 +252,9 @@ export function Fretboard({
                   label={label}
                   dimmed={dimmed}
                   showTriadRing={showTriadRing}
+                  isEcho={isEcho}
                   onPlay={() => onNotePlay(note)}
+                  onHoverChange={setHoveredNoteName}
                 />
               );
             }),

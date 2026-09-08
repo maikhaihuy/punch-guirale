@@ -26,11 +26,11 @@ type Props = {
 export function PracticeHistory({ sessions }: Props) {
   return (
     <section className="mx-auto w-full max-w-3xl px-3 py-4">
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-foreground/60">
+      <h2 className="mb-2 font-display text-base font-semibold text-text/80">
         Practice history
       </h2>
       {sessions.length === 0 ? (
-        <p className="text-sm text-foreground/50">
+        <p className="text-sm text-text/50">
           No sessions yet — run the stopwatch and hit Stop to log one.
         </p>
       ) : (
@@ -40,12 +40,12 @@ export function PracticeHistory({ sessions }: Props) {
               key={`${s.date}-${i}`}
               className="flex items-center justify-between gap-2 rounded-lg bg-black/5 px-3 py-2 text-sm dark:bg-white/10"
             >
-              <span className="text-foreground/70">{formatDate(s.date)}</span>
-              <span className="font-medium">
+              <span className="text-text/70">{formatDate(s.date)}</span>
+              <span className="font-display font-medium">
                 {s.rootNote} {MODE_LABELS[s.mode]}
               </span>
-              <span className="text-foreground/70">{s.bpm} BPM</span>
-              <span className="font-mono tabular-nums">{formatDuration(s.durationSec)}</span>
+              <span className="text-text/70">{s.bpm} BPM</span>
+              <span className="tabular-nums">{formatDuration(s.durationSec)}</span>
             </li>
           ))}
         </ul>

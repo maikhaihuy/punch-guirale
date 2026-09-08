@@ -6,6 +6,7 @@ import { Fretboard } from "@/components/Fretboard";
 import { KeyModeBar, type DisplayMode, type SelectedPosition } from "@/components/KeyModeBar";
 import { PracticeControls } from "@/components/PracticeControls";
 import { PracticeHistory } from "@/components/PracticeHistory";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useNotePlayer } from "@/hooks/useNotePlayer";
 import { useStopwatch } from "@/hooks/useStopwatch";
@@ -65,6 +66,8 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center gap-8 px-4 pt-6 pb-4">
+      <ThemeToggle />
+
       <div className="w-full max-w-2xl">
         <KeyModeBar
           root={root}

@@ -26,11 +26,30 @@ const DOT_RADIUS = 14;
 const TOUCH_RADIUS = 22;
 const TRIAD_RING_RADIUS = 18;
 
+// Standard guitar fret-position inlays: single dot at these frets, double
+// dot (the octave markers) at 12 and 24. Purely a wayfinding overlay -
+// independent of the current scale/root/position selection.
+const FRET_MARKERS: Record<number, 1 | 2> = {
+  3: 1,
+  5: 1,
+  7: 1,
+  9: 1,
+  12: 2,
+  15: 1,
+  17: 1,
+  19: 1,
+  21: 1,
+  24: 2,
+};
+const MARKER_RADIUS = 5;
+const DOUBLE_MARKER_OFFSET = 16;
+
 type FretboardNoteProps = {
   note: FretNote;
   cx: number;
   cy: number;
   label: string | undefined;
+  displayMode: "note" | "degree";
   dimmed: boolean;
   showTriadRing: boolean;
   isEcho: boolean;
@@ -51,6 +70,7 @@ const FretboardNote = memo(function FretboardNote({
   cx,
   cy,
   label,
+  displayMode,
   dimmed,
   showTriadRing,
   isEcho,
@@ -69,13 +89,19 @@ const FretboardNote = memo(function FretboardNote({
   const dotClassName = [
     "fret-note",
     note.isRoot
-      ? "fret-note--root fill-foreground stroke-foreground"
-      : "fill-white stroke-foreground/70 dark:fill-black",
+      ? "fret-note--root fill-text stroke-text"
+      : "fill-surface stroke-text/70",
     active && "fret-note--active",
     isEcho && !active && !isHovering && "fret-note--echo",
   ]
     .filter(Boolean)
     .join(" ");
+
+  const labelClassName = [
+    note.isRoot ? "fill-bg" : "fill-text",
+    "text-[10px] font-semibold",
+    displayMode === "note" ? "font-display" : "tabular-nums",
+  ].join(" ");
 
   return (
     <g
@@ -99,17 +125,7 @@ const FretboardNote = memo(function FretboardNote({
       <circle cx={cx} cy={cy} r={TOUCH_RADIUS} fill="transparent" />
       {showTriadRing && <circle cx={cx} cy={cy} r={TRIAD_RING_RADIUS} className="fret-note--triad" />}
       <circle cx={cx} cy={cy} r={DOT_RADIUS} className={dotClassName} strokeWidth={2} />
-      <text
-        x={cx}
-        y={cy}
-        dominantBaseline="middle"
-        textAnchor="middle"
-        className={
-          note.isRoot
-            ? "fill-background text-[10px] font-semibold"
-            : "fill-foreground text-[10px] font-semibold"
-        }
-      >
+      <text x={cx} y={cy} dominantBaseline="middle" textAnchor="middle" className={labelClassName}>
         {label}
       </text>
     </g>
@@ -163,20 +179,17 @@ export function Fretboard({
   const fretX = (fret: number) => STRING_LABEL_WIDTH + fret * fretWidth + fretWidth / 2;
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 overflow-x-auto overflow-y-hidden bg-white dark:bg-black"
-    >
+    <div ref={containerRef} className="flex-1 overflow-x-auto overflow-y-hidden bg-surface">
       <div style={{ width: boardWidth, minWidth: boardWidth }}>
         <div
-          className="sticky top-0 z-10 flex border-b border-black/10 bg-white/95 backdrop-blur-sm dark:border-white/10 dark:bg-black/95"
+          className="sticky top-0 z-10 flex border-b border-black/10 bg-surface/95 backdrop-blur-sm dark:border-white/10"
           style={{ width: boardWidth }}
         >
           <div style={{ width: STRING_LABEL_WIDTH }} />
           {Array.from({ length: numFrets }, (_, fret) => (
             <div
               key={fret}
-              className="flex shrink-0 items-center justify-center text-xs font-medium text-foreground/60"
+              className="flex shrink-0 items-center justify-center text-xs font-medium tabular-nums text-text-muted"
               style={{ width: fretWidth }}
             >
               {fret}
@@ -193,9 +206,24 @@ export function Fretboard({
                 y={0}
                 width={(range.hi - range.lo + 1) * fretWidth}
                 height={boardHeight}
-                className="fill-foreground/[0.06]"
+                className="fill-text/6"
               />
             ))}
+
+          {Object.entries(FRET_MARKERS).map(([fretStr, count]) => {
+            const fret = Number(fretStr);
+            const cx = fretX(fret);
+            const cy = boardHeight / 2;
+            if (count === 1) {
+              return <circle key={`marker-${fret}`} cx={cx} cy={cy} r={MARKER_RADIUS} className="fill-text-muted/40" />;
+            }
+            return (
+              <g key={`marker-${fret}`}>
+                <circle cx={cx} cy={cy - DOUBLE_MARKER_OFFSET} r={MARKER_RADIUS} className="fill-text-muted/40" />
+                <circle cx={cx} cy={cy + DOUBLE_MARKER_OFFSET} r={MARKER_RADIUS} className="fill-text-muted/40" />
+              </g>
+            );
+          })}
 
           {Array.from({ length: numFrets }, (_, fret) => (
             <line
@@ -206,7 +234,7 @@ export function Fretboard({
               y2={boardHeight - BOTTOM_PADDING + 8}
               stroke="currentColor"
               strokeWidth={fret === 0 ? 4 : 1}
-              className="text-black/20 dark:text-white/20"
+              className="text-text/20"
             />
           ))}
 
@@ -219,14 +247,14 @@ export function Fretboard({
                 y2={stringY(stringIndex)}
                 stroke="currentColor"
                 strokeWidth={1.5}
-                className="text-black/30 dark:text-white/30"
+                className="text-text/30"
               />
               <text
                 x={STRING_LABEL_WIDTH / 2}
                 y={stringY(stringIndex)}
                 dominantBaseline="middle"
                 textAnchor="middle"
-                className="fill-foreground/60 text-[11px] font-medium"
+                className="fill-text-muted text-[11px] font-medium"
               >
                 {name}
               </text>
@@ -249,6 +277,7 @@ export function Fretboard({
                   note={note}
                   cx={fretX(note.fret)}
                   cy={stringY(stringIndex)}
+                  displayMode={displayMode}
                   label={label}
                   dimmed={dimmed}
                   showTriadRing={showTriadRing}

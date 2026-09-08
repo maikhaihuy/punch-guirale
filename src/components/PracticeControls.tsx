@@ -50,18 +50,18 @@ export function PracticeControls({
           type="button"
           onClick={() => onBpmChange(Math.max(BPM_MIN, bpm - BPM_STEP))}
           aria-label="Decrease BPM"
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-lg font-semibold text-foreground hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-lg font-semibold text-text hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
         >
           −
         </button>
-        <span className="w-10 shrink-0 text-center tabular-nums font-medium text-foreground">
+        <span className="w-10 shrink-0 text-center tabular-nums font-medium text-text">
           {bpm}
         </span>
         <button
           type="button"
           onClick={() => onBpmChange(Math.min(BPM_MAX, bpm + BPM_STEP))}
           aria-label="Increase BPM"
-          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-lg font-semibold text-foreground hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-lg font-semibold text-text hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
         >
           +
         </button>
@@ -71,8 +71,8 @@ export function PracticeControls({
           aria-label={isMetronomePlaying ? "Pause metronome" : "Start metronome"}
           className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
             isMetronomePlaying
-              ? "bg-foreground text-background"
-              : "bg-black/10 text-foreground dark:bg-white/15"
+              ? "bg-text text-bg"
+              : "bg-black/10 text-text dark:bg-white/15"
           }`}
         >
           {isMetronomePlaying ? (
@@ -85,7 +85,7 @@ export function PracticeControls({
 
       <div className="flex items-center gap-2">
         <Timer className="size-5 shrink-0 text-text-muted" aria-hidden />
-        <span className="min-w-14 font-mono text-lg tabular-nums text-foreground">
+        <span className="min-w-14 text-lg tabular-nums text-text">
           {formatDuration(elapsedSec)}
         </span>
         {stopwatchStatus === "idle" && (
@@ -93,7 +93,7 @@ export function PracticeControls({
             type="button"
             onClick={onStopwatchStart}
             aria-label="Start stopwatch"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-text text-bg"
           >
             <Play className="size-4" aria-hidden />
           </button>
@@ -104,7 +104,7 @@ export function PracticeControls({
               type="button"
               onClick={onStopwatchPause}
               aria-label="Pause stopwatch"
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-black/10 text-foreground dark:bg-white/15"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-black/10 text-text dark:bg-white/15"
             >
               <Pause className="size-4" aria-hidden />
             </button>
@@ -124,7 +124,7 @@ export function PracticeControls({
               type="button"
               onClick={onStopwatchResume}
               aria-label="Resume stopwatch"
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-text text-bg"
             >
               <Play className="size-4" aria-hidden />
             </button>

@@ -35,8 +35,8 @@ const MODE_ORDER: ModeName[] = [
 const TAB_BUTTON_CLASS = (active: boolean) =>
   `shrink-0 rounded-md px-2.5 py-1 text-sm font-medium transition-colors ${
     active
-      ? "bg-foreground text-background"
-      : "text-foreground/70 hover:bg-black/5 dark:hover:bg-white/10"
+      ? "bg-text text-bg"
+      : "text-text/70 hover:bg-black/5 dark:hover:bg-white/10"
   }`;
 
 export function KeyModeBar({
@@ -63,8 +63,8 @@ export function KeyModeBar({
               onClick={() => onRootChange(note)}
               className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-medium transition-colors ${
                 note === root
-                  ? "bg-foreground text-background"
-                  : "bg-black/5 text-foreground hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
+                  ? "bg-text text-bg"
+                  : "bg-black/5 text-text hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
               }`}
             >
               {note}

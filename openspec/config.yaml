@@ -1,0 +1,26 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  Guitar Scale Trainer — client-side web app for practicing scale
+  fingerings on a fretboard, driven by key + mode music theory.
+  Tech stack: Next.js (App Router), React, TypeScript, Tailwind CSS,
+  Tone.js (metronome via Tone.Transport/Tone.Loop, not setInterval).
+  No backend, no database, no auth — all state is client-side;
+  practice history persists to localStorage.
+  Any localStorage-derived state must start empty and be populated in
+  useEffect, never in a useState initializer (SSR/hydration mismatch).
+  See CLAUDE.md and MVP_SPECS.md for full architecture and the
+  Milestone 1 build spec.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

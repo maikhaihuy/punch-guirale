@@ -3,11 +3,25 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --surface: #ffffff;
+  --text-muted: #6b7280;
+  --accent: #ea580c;
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
+  --input: rgba(0, 0, 0, 0.1);
+  --ring: rgba(0, 0, 0, 0.3);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -16,6 +30,11 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --surface: #0a0a0a;
+    --text-muted: #9ca3af;
+    --accent: #fb923c;
+    --input: rgba(255, 255, 255, 0.15);
+    --ring: rgba(255, 255, 255, 0.3);
   }
 }
 

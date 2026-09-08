@@ -64,44 +64,50 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-full flex-col pb-28">
-      <KeyModeBar
-        root={root}
-        onRootChange={setRoot}
-        mode={mode}
-        onModeChange={setMode}
-        displayMode={displayMode}
-        onDisplayModeChange={setDisplayMode}
-        selectedPosition={selectedPosition}
-        onSelectedPositionChange={setSelectedPosition}
-        highlightTriad={highlightTriad}
-        onHighlightTriadChange={setHighlightTriad}
-      />
+    <div className="flex min-h-screen w-full flex-col items-center gap-8 px-4 pt-6 pb-4">
+      <div className="w-full max-w-2xl">
+        <KeyModeBar
+          root={root}
+          onRootChange={setRoot}
+          mode={mode}
+          onModeChange={setMode}
+          displayMode={displayMode}
+          onDisplayModeChange={setDisplayMode}
+          selectedPosition={selectedPosition}
+          onSelectedPositionChange={setSelectedPosition}
+          highlightTriad={highlightTriad}
+          onHighlightTriadChange={setHighlightTriad}
+        />
+      </div>
 
-      <Fretboard
-        fretboard={fretboard}
-        displayMode={displayMode}
-        selectedPosition={selectedPosition}
-        positionRanges={positionRanges}
-        onNotePlay={(note) => void playNote(note.freq)}
-        autoFitMobile={isMobile}
-        highlightTriad={highlightTriad}
-      />
+      <div className="flex w-full max-w-5xl flex-col gap-6">
+        <Fretboard
+          fretboard={fretboard}
+          displayMode={displayMode}
+          selectedPosition={selectedPosition}
+          positionRanges={positionRanges}
+          onNotePlay={(note) => void playNote(note.freq)}
+          autoFitMobile={isMobile}
+          highlightTriad={highlightTriad}
+        />
 
-      <PracticeHistory sessions={sessions} />
+        <PracticeHistory sessions={sessions} />
+      </div>
 
-      <PracticeControls
-        bpm={metronome.bpm}
-        onBpmChange={metronome.setBpm}
-        isMetronomePlaying={metronome.isPlaying}
-        onToggleMetronome={metronome.toggle}
-        stopwatchStatus={stopwatch.status}
-        elapsedSec={stopwatch.elapsedSec}
-        onStopwatchStart={stopwatch.start}
-        onStopwatchPause={stopwatch.pause}
-        onStopwatchResume={stopwatch.resume}
-        onStopwatchStop={handleStopwatchStop}
-      />
+      <div className="sticky bottom-0 z-30 w-full max-w-2xl sm:static">
+        <PracticeControls
+          bpm={metronome.bpm}
+          onBpmChange={metronome.setBpm}
+          isMetronomePlaying={metronome.isPlaying}
+          onToggleMetronome={metronome.toggle}
+          stopwatchStatus={stopwatch.status}
+          elapsedSec={stopwatch.elapsedSec}
+          onStopwatchStart={stopwatch.start}
+          onStopwatchPause={stopwatch.pause}
+          onStopwatchResume={stopwatch.resume}
+          onStopwatchStop={handleStopwatchStop}
+        />
+      </div>
     </div>
   );
 }

@@ -1,6 +1,12 @@
 "use client";
 
+import { CircleStop, Metronome, Pause, Play, Timer } from "lucide-react";
+
 import type { StopwatchStatus } from "@/hooks/useStopwatch";
+
+const BPM_MIN = 30;
+const BPM_MAX = 240;
+const BPM_STEP = 5;
 
 function formatDuration(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -35,86 +41,103 @@ export function PracticeControls({
 }: Props) {
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-black/10 bg-white/95 backdrop-blur-sm dark:border-white/10 dark:bg-black/95"
+      className="flex w-full items-center justify-between gap-4 rounded-t-xl border-t border-black/10 bg-surface/95 px-4 py-3 backdrop-blur-sm dark:border-white/10"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto flex max-w-3xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="w-16 shrink-0 text-sm font-medium text-foreground/70">
-            {bpm} BPM
-          </span>
-          <input
-            type="range"
-            min={30}
-            max={240}
-            value={bpm}
-            onChange={(e) => onBpmChange(Number(e.target.value))}
-            className="w-full min-w-[100px] flex-1 sm:w-32"
-            aria-label="Metronome BPM"
-          />
+      <div className="flex items-center gap-2">
+        <Metronome className="size-5 shrink-0 text-text-muted" aria-hidden />
+        <button
+          type="button"
+          onClick={() => onBpmChange(Math.max(BPM_MIN, bpm - BPM_STEP))}
+          aria-label="Decrease BPM"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-lg font-semibold text-foreground hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
+        >
+          −
+        </button>
+        <span className="w-10 shrink-0 text-center tabular-nums font-medium text-foreground">
+          {bpm}
+        </span>
+        <button
+          type="button"
+          onClick={() => onBpmChange(Math.min(BPM_MAX, bpm + BPM_STEP))}
+          aria-label="Increase BPM"
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-lg font-semibold text-foreground hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={onToggleMetronome}
+          aria-label={isMetronomePlaying ? "Pause metronome" : "Start metronome"}
+          className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
+            isMetronomePlaying
+              ? "bg-foreground text-background"
+              : "bg-black/10 text-foreground dark:bg-white/15"
+          }`}
+        >
+          {isMetronomePlaying ? (
+            <Pause className="size-4" aria-hidden />
+          ) : (
+            <Play className="size-4" aria-hidden />
+          )}
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Timer className="size-5 shrink-0 text-text-muted" aria-hidden />
+        <span className="min-w-14 font-mono text-lg tabular-nums text-foreground">
+          {formatDuration(elapsedSec)}
+        </span>
+        {stopwatchStatus === "idle" && (
           <button
             type="button"
-            onClick={onToggleMetronome}
-            className={`shrink-0 rounded-full px-4 py-3 text-sm font-semibold ${
-              isMetronomePlaying
-                ? "bg-foreground text-background"
-                : "bg-black/10 text-foreground dark:bg-white/15"
-            }`}
+            onClick={onStopwatchStart}
+            aria-label="Start stopwatch"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background"
           >
-            {isMetronomePlaying ? "Stop" : "Metronome"}
+            <Play className="size-4" aria-hidden />
           </button>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span className="min-w-[3.5rem] font-mono text-lg tabular-nums text-foreground">
-            {formatDuration(elapsedSec)}
-          </span>
-          {stopwatchStatus === "idle" && (
+        )}
+        {stopwatchStatus === "running" && (
+          <>
             <button
               type="button"
-              onClick={onStopwatchStart}
-              className="shrink-0 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background"
+              onClick={onStopwatchPause}
+              aria-label="Pause stopwatch"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-black/10 text-foreground dark:bg-white/15"
             >
-              Start
+              <Pause className="size-4" aria-hidden />
             </button>
-          )}
-          {stopwatchStatus === "running" && (
-            <>
-              <button
-                type="button"
-                onClick={onStopwatchPause}
-                className="shrink-0 rounded-full bg-black/10 px-5 py-3 text-sm font-semibold text-foreground dark:bg-white/15"
-              >
-                Pause
-              </button>
-              <button
-                type="button"
-                onClick={onStopwatchStop}
-                className="shrink-0 rounded-full bg-red-600/90 px-5 py-3 text-sm font-semibold text-white"
-              >
-                Stop
-              </button>
-            </>
-          )}
-          {stopwatchStatus === "paused" && (
-            <>
-              <button
-                type="button"
-                onClick={onStopwatchResume}
-                className="shrink-0 rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background"
-              >
-                Resume
-              </button>
-              <button
-                type="button"
-                onClick={onStopwatchStop}
-                className="shrink-0 rounded-full bg-red-600/90 px-5 py-3 text-sm font-semibold text-white"
-              >
-                Stop
-              </button>
-            </>
-          )}
-        </div>
+            <button
+              type="button"
+              onClick={onStopwatchStop}
+              aria-label="Stop stopwatch"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-red-600/90 text-white"
+            >
+              <CircleStop className="size-4" aria-hidden />
+            </button>
+          </>
+        )}
+        {stopwatchStatus === "paused" && (
+          <>
+            <button
+              type="button"
+              onClick={onStopwatchResume}
+              aria-label="Resume stopwatch"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background"
+            >
+              <Play className="size-4" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={onStopwatchStop}
+              aria-label="Stop stopwatch"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-red-600/90 text-white"
+            >
+              <CircleStop className="size-4" aria-hidden />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

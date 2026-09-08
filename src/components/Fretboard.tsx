@@ -12,6 +12,7 @@ type Props = {
   positionRanges: Array<{ lo: number; hi: number }>; // absolute fret ranges for selectedPosition, empty when "all"
   onNotePlay: (note: FretNote) => void;
   autoFitMobile: boolean;
+  highlightTriad: boolean;
 };
 
 const STRING_NAMES = ["E", "A", "D", "G", "B", "E"]; // low E to high E, matches OPEN_STRINGS order
@@ -23,6 +24,66 @@ const TOP_PADDING = 20;
 const BOTTOM_PADDING = 20;
 const DOT_RADIUS = 14;
 const TOUCH_RADIUS = 22;
+const TRIAD_RING_RADIUS = 18;
+
+type FretboardNoteProps = {
+  note: FretNote;
+  cx: number;
+  cy: number;
+  label: string | undefined;
+  dimmed: boolean;
+  showTriadRing: boolean;
+  onPlay: () => void;
+};
+
+// Active-press state lives here (not CSS `:hover`) so mouse and touch
+// behave identically and the glow lands on the same press that triggers
+// playback, per note-interaction-states.
+function FretboardNote({ note, cx, cy, label, dimmed, showTriadRing, onPlay }: FretboardNoteProps) {
+  const [active, setActive] = useState(false);
+  const clearActive = () => setActive(false);
+
+  const dotClassName = [
+    "fret-note",
+    note.isRoot
+      ? "fret-note--root fill-foreground stroke-foreground"
+      : "fill-white stroke-foreground/70 dark:fill-black",
+    active && "fret-note--active",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <g
+      onPointerDown={() => {
+        setActive(true);
+        onPlay();
+      }}
+      onPointerUp={clearActive}
+      onPointerLeave={clearActive}
+      onPointerCancel={clearActive}
+      className="cursor-pointer"
+      style={{ opacity: dimmed ? 0.28 : 1, transition: "opacity 0.2s ease" }}
+    >
+      <circle cx={cx} cy={cy} r={TOUCH_RADIUS} fill="transparent" />
+      {showTriadRing && <circle cx={cx} cy={cy} r={TRIAD_RING_RADIUS} className="fret-note--triad" />}
+      <circle cx={cx} cy={cy} r={DOT_RADIUS} className={dotClassName} strokeWidth={2} />
+      <text
+        x={cx}
+        y={cy}
+        dominantBaseline="middle"
+        textAnchor="middle"
+        className={
+          note.isRoot
+            ? "fill-background text-[10px] font-semibold"
+            : "fill-foreground text-[10px] font-semibold"
+        }
+      >
+        {label}
+      </text>
+    </g>
+  );
+}
 
 export function Fretboard({
   fretboard,
@@ -31,6 +92,7 @@ export function Fretboard({
   positionRanges,
   onNotePlay,
   autoFitMobile,
+  highlightTriad,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomFretWidth, setZoomFretWidth] = useState<number | null>(null);
@@ -147,39 +209,18 @@ export function Fretboard({
                 selectedPosition !== "all" &&
                 !note.isRoot &&
                 !note.positions?.includes(selectedPosition);
+              const showTriadRing = highlightTriad && !!note.isTriadTone && !note.isRoot;
               return (
-                <g
+                <FretboardNote
                   key={`note-${stringIndex}-${note.fret}`}
-                  onClick={() => onNotePlay(note)}
-                  className="cursor-pointer"
-                  style={{ opacity: dimmed ? 0.28 : 1, transition: "opacity 0.2s ease" }}
-                >
-                  <circle cx={fretX(note.fret)} cy={stringY(stringIndex)} r={TOUCH_RADIUS} fill="transparent" />
-                  <circle
-                    cx={fretX(note.fret)}
-                    cy={stringY(stringIndex)}
-                    r={DOT_RADIUS}
-                    className={
-                      note.isRoot
-                        ? "fill-foreground stroke-foreground"
-                        : "fill-white stroke-foreground/70 dark:fill-black"
-                    }
-                    strokeWidth={2}
-                  />
-                  <text
-                    x={fretX(note.fret)}
-                    y={stringY(stringIndex)}
-                    dominantBaseline="middle"
-                    textAnchor="middle"
-                    className={
-                      note.isRoot
-                        ? "fill-background text-[10px] font-semibold"
-                        : "fill-foreground text-[10px] font-semibold"
-                    }
-                  >
-                    {label}
-                  </text>
-                </g>
+                  note={note}
+                  cx={fretX(note.fret)}
+                  cy={stringY(stringIndex)}
+                  label={label}
+                  dimmed={dimmed}
+                  showTriadRing={showTriadRing}
+                  onPlay={() => onNotePlay(note)}
+                />
               );
             }),
           )}

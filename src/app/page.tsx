@@ -20,6 +20,7 @@ export default function Home() {
   const [mode, setMode] = useState<ModeName>("ionian");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("note");
   const [selectedPosition, setSelectedPosition] = useState<SelectedPosition>("all");
+  const [highlightTriad, setHighlightTriad] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
 
@@ -73,6 +74,8 @@ export default function Home() {
         onDisplayModeChange={setDisplayMode}
         selectedPosition={selectedPosition}
         onSelectedPositionChange={setSelectedPosition}
+        highlightTriad={highlightTriad}
+        onHighlightTriadChange={setHighlightTriad}
       />
 
       <Fretboard
@@ -82,6 +85,7 @@ export default function Home() {
         positionRanges={positionRanges}
         onNotePlay={(note) => void playNote(note.freq)}
         autoFitMobile={isMobile}
+        highlightTriad={highlightTriad}
       />
 
       <PracticeHistory sessions={sessions} />

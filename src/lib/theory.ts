@@ -59,6 +59,21 @@ export function getScaleMap(root: string, mode: ModeName): Map<string, string> {
   return map;
 }
 
+// Strips leading accidentals (b, #, or repeats) from a degree label like
+// "b3" or "##4" and returns the base scale-degree number.
+function degreeBaseNumber(degree: string): number {
+  return parseInt(degree.replace(/^[b#]+/, ""), 10);
+}
+
+const TRIAD_DEGREES = new Set([1, 3, 5]);
+
+// True when a degree label belongs to the root triad (1-3-5), regardless
+// of any accidental - e.g. Dorian's "b3" still counts, giving each mode
+// its correct triad quality (major/minor/diminished) without special-casing.
+function isTriadDegree(degree: string): boolean {
+  return TRIAD_DEGREES.has(degreeBaseNumber(degree));
+}
+
 export type FretNote = {
   fret: number;
   midi: number;
@@ -68,6 +83,7 @@ export type FretNote = {
   isRoot: boolean;
   freq: number;
   positions?: PositionId[]; // which of the 5 positions this note belongs to (can be more than one where shapes overlap)
+  isTriadTone?: boolean; // true when this note is the root, 3rd, or 5th of the current mode's root triad
 };
 
 export function buildFretboard(root: string, mode: ModeName, maxFret = 24): FretNote[][] {
@@ -85,6 +101,7 @@ export function buildFretboard(root: string, mode: ModeName, maxFret = 24): Fret
         inScale: degree !== undefined,
         isRoot: name === root,
         freq: midiToFreq(midi),
+        isTriadTone: degree !== undefined && isTriadDegree(degree),
       };
     }),
   );

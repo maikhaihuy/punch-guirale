@@ -15,6 +15,8 @@ type Props = {
   onDisplayModeChange: (mode: DisplayMode) => void;
   selectedPosition: SelectedPosition;
   onSelectedPositionChange: (position: SelectedPosition) => void;
+  highlightTriad: boolean;
+  onHighlightTriadChange: (highlight: boolean) => void;
 };
 
 const MODE_ORDER: ModeName[] = [
@@ -36,6 +38,8 @@ export function KeyModeBar({
   onDisplayModeChange,
   selectedPosition,
   onSelectedPositionChange,
+  highlightTriad,
+  onHighlightTriadChange,
 }: Props) {
   return (
     <div className="flex flex-col gap-2 border-b border-black/10 bg-white/95 px-3 py-2 backdrop-blur-sm dark:border-white/10 dark:bg-black/95">
@@ -83,13 +87,27 @@ export function KeyModeBar({
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={() => onDisplayModeChange(displayMode === "note" ? "degree" : "note")}
-          className="shrink-0 rounded-full bg-black/5 px-3 py-1 text-sm font-medium text-foreground hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
-        >
-          {displayMode === "note" ? "Notes" : "Degrees"}
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => onHighlightTriadChange(!highlightTriad)}
+            aria-pressed={highlightTriad}
+            className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+              highlightTriad
+                ? "bg-foreground text-background"
+                : "bg-black/5 text-foreground hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
+            }`}
+          >
+            Highlight triad
+          </button>
+          <button
+            type="button"
+            onClick={() => onDisplayModeChange(displayMode === "note" ? "degree" : "note")}
+            className="shrink-0 rounded-full bg-black/5 px-3 py-1 text-sm font-medium text-foreground hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20"
+          >
+            {displayMode === "note" ? "Notes" : "Degrees"}
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-1.5 overflow-x-auto">

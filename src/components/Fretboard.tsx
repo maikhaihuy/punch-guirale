@@ -12,7 +12,7 @@ type Props = {
   positionRanges: Array<{ lo: number; hi: number }>; // absolute fret ranges for selectedPosition, empty when "all"
   onNotePlay: (note: FretNote) => void;
   autoFitMobile: boolean;
-  highlightTriad: boolean;
+  triadDegreeLabels: Set<string> | null;
 };
 
 const STRING_NAMES = ["E", "A", "D", "G", "B", "E"]; // low E to high E, matches OPEN_STRINGS order
@@ -139,7 +139,7 @@ export function Fretboard({
   positionRanges,
   onNotePlay,
   autoFitMobile,
-  highlightTriad,
+  triadDegreeLabels,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoomFretWidth, setZoomFretWidth] = useState<number | null>(null);
@@ -269,7 +269,11 @@ export function Fretboard({
                 selectedPosition !== "all" &&
                 !note.isRoot &&
                 !note.positions?.includes(selectedPosition);
-              const showTriadRing = highlightTriad && !!note.isTriadTone && !note.isRoot;
+              const showTriadRing =
+                !!triadDegreeLabels &&
+                note.degree !== undefined &&
+                triadDegreeLabels.has(note.degree) &&
+                !note.isRoot;
               const isEcho = note.name === hoveredNoteName;
               return (
                 <FretboardNote

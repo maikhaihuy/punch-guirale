@@ -12,7 +12,13 @@ import { useNotePlayer } from "@/hooks/useNotePlayer";
 import { useStopwatch } from "@/hooks/useStopwatch";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { appendSession, loadSessions, type PracticeSession } from "@/lib/storage";
-import { buildFretboard, getPositionRanges, type ModeName, type NoteName } from "@/lib/theory";
+import {
+  buildFretboard,
+  getPositionRanges,
+  getTriadDegreeLabels,
+  type ModeName,
+  type NoteName,
+} from "@/lib/theory";
 
 const MOBILE_QUERY = "(max-width: 640px)";
 
@@ -21,7 +27,7 @@ export default function Home() {
   const [mode, setMode] = useState<ModeName>("ionian");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("note");
   const [selectedPosition, setSelectedPosition] = useState<SelectedPosition>("all");
-  const [highlightTriad, setHighlightTriad] = useState(false);
+  const [selectedTriadDegree, setSelectedTriadDegree] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
 
@@ -42,6 +48,10 @@ export default function Home() {
   const positionRanges = useMemo(
     () => (selectedPosition === "all" ? [] : getPositionRanges(root, selectedPosition)),
     [root, selectedPosition],
+  );
+  const triadDegreeLabels = useMemo(
+    () => (selectedTriadDegree === null ? null : getTriadDegreeLabels(mode, selectedTriadDegree)),
+    [mode, selectedTriadDegree],
   );
 
   const metronome = useMetronome();
@@ -78,8 +88,8 @@ export default function Home() {
           onDisplayModeChange={setDisplayMode}
           selectedPosition={selectedPosition}
           onSelectedPositionChange={setSelectedPosition}
-          highlightTriad={highlightTriad}
-          onHighlightTriadChange={setHighlightTriad}
+          selectedTriadDegree={selectedTriadDegree}
+          onSelectedTriadDegreeChange={setSelectedTriadDegree}
         />
       </div>
 
@@ -91,7 +101,7 @@ export default function Home() {
           positionRanges={positionRanges}
           onNotePlay={(note) => void playNote(note.freq)}
           autoFitMobile={isMobile}
-          highlightTriad={highlightTriad}
+          triadDegreeLabels={triadDegreeLabels}
         />
 
         <PracticeHistory sessions={sessions} />

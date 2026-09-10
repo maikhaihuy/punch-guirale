@@ -4,7 +4,14 @@ import { Dice5 } from "lucide-react";
 
 import { Switch } from "@/components/ui/switch";
 import { POSITION_IDS, type PositionId } from "@/lib/positions";
-import { CHROMATIC, MODE_LABELS, type ModeName, type NoteName, randomRoot } from "@/lib/theory";
+import {
+  CHROMATIC,
+  getDiatonicDegrees,
+  MODE_LABELS,
+  type ModeName,
+  type NoteName,
+  randomRoot,
+} from "@/lib/theory";
 
 export type DisplayMode = "note" | "degree";
 export type SelectedPosition = "all" | PositionId;
@@ -18,8 +25,8 @@ type Props = {
   onDisplayModeChange: (mode: DisplayMode) => void;
   selectedPosition: SelectedPosition;
   onSelectedPositionChange: (position: SelectedPosition) => void;
-  highlightTriad: boolean;
-  onHighlightTriadChange: (highlight: boolean) => void;
+  selectedTriadDegree: number | null;
+  onSelectedTriadDegreeChange: (degree: number | null) => void;
 };
 
 const MODE_ORDER: ModeName[] = [
@@ -48,9 +55,10 @@ export function KeyModeBar({
   onDisplayModeChange,
   selectedPosition,
   onSelectedPositionChange,
-  highlightTriad,
-  onHighlightTriadChange,
+  selectedTriadDegree,
+  onSelectedTriadDegreeChange,
 }: Props) {
+  const diatonicDegrees = getDiatonicDegrees(root, mode);
   return (
     <div className="flex w-full flex-col gap-4">
       <section className="flex flex-col gap-2">
@@ -121,6 +129,29 @@ export function KeyModeBar({
         </div>
       </section>
 
+      <section className="flex flex-col gap-2">
+        <span className="text-sm text-text-muted">Triad</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onSelectedTriadDegreeChange(null)}
+            className={TAB_BUTTON_CLASS(selectedTriadDegree === null)}
+          >
+            None
+          </button>
+          {diatonicDegrees.map((degree) => (
+            <button
+              key={degree.index}
+              type="button"
+              onClick={() => onSelectedTriadDegreeChange(degree.index)}
+              className={TAB_BUTTON_CLASS(selectedTriadDegree === degree.index)}
+            >
+              {degree.romanNumeral}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="flex items-center gap-6">
         <label className="flex items-center gap-2 text-sm">
           <span>Note</span>
@@ -129,10 +160,6 @@ export function KeyModeBar({
             onCheckedChange={(checked) => onDisplayModeChange(checked ? "degree" : "note")}
           />
           <span>Degree</span>
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <Switch checked={highlightTriad} onCheckedChange={onHighlightTriadChange} />
-          <span>Highlight triad</span>
         </label>
       </section>
     </div>

@@ -1,32 +1,11 @@
 import { POSITION_IDS, POSITION_SHAPES, POSITION_SPANS, type PositionId } from "./positions";
+import { getScaleNotes, type ScaleFamily } from "./scales";
 
 export const CHROMATIC = [
   "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 ] as const;
 
 export type NoteName = (typeof CHROMATIC)[number];
-
-export const MODES = {
-  ionian: [0, 2, 4, 5, 7, 9, 11],
-  dorian: [0, 2, 3, 5, 7, 9, 10],
-  phrygian: [0, 1, 3, 5, 7, 8, 10],
-  lydian: [0, 2, 4, 6, 7, 9, 11],
-  mixolydian: [0, 2, 4, 5, 7, 9, 10],
-  aeolian: [0, 2, 3, 5, 7, 8, 10],
-  locrian: [0, 1, 3, 5, 6, 8, 10],
-} as const;
-
-export type ModeName = keyof typeof MODES;
-
-export const MODE_LABELS: Record<ModeName, string> = {
-  ionian: "Ionian",
-  dorian: "Dorian",
-  phrygian: "Phrygian",
-  lydian: "Lydian",
-  mixolydian: "Mixolydian",
-  aeolian: "Aeolian",
-  locrian: "Locrian",
-};
 
 // Standard tuning, string 6 (low E) to string 1 (high E)
 export const OPEN_STRINGS = [40, 45, 50, 55, 59, 64]; // E2 A2 D3 G3 B3 E4
@@ -39,24 +18,25 @@ export function midiToFreq(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
-// Degree label relative to major scale (e.g. dorian -> 1,2,b3,4,5,6,b7)
-export function getDegreeLabels(mode: ModeName): string[] {
-  const MAJOR = MODES.ionian;
-  return MODES[mode].map((interval, i) => {
-    const diff = interval - MAJOR[i];
-    const num = i + 1;
-    if (diff === 0) return `${num}`;
-    return diff < 0 ? `${"b".repeat(-diff)}${num}` : `${"#".repeat(diff)}${num}`;
-  });
+// Degree label for a semitone offset from root, expressed relative to the
+// major scale (e.g. offset 3 -> "b3", offset 6 -> "b5"). This is a fixed
+// 12-entry table rather than a per-family/mode computation, so it applies
+// uniformly to any family's notes - diatonic, pentatonic, or an
+// inserted variant note - without needing a degreeCount-specific reference.
+const DEGREE_LABELS_BY_SEMITONE = [
+  "1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7",
+] as const;
+
+function degreeLabelForSemitone(offset: number): string {
+  return DEGREE_LABELS_BY_SEMITONE[((offset % 12) + 12) % 12];
 }
 
-// Map note name -> degree label for the chosen root + mode
-export function getScaleMap(root: string, mode: ModeName): Map<string, string> {
-  const rootIdx = CHROMATIC.indexOf(root as NoteName);
-  const degrees = getDegreeLabels(mode);
-  const map = new Map<string, string>();
-  MODES[mode].forEach((iv, i) => map.set(CHROMATIC[(rootIdx + iv) % 12], degrees[i]));
-  return map;
+// A rotated interval pattern for a family/mode - semitone offsets from
+// root, e.g. [0,2,3,5,7,9,10] for Dorian. Derived via getScaleNotes with a
+// rootMidi of 0 so the returned notes equal their own offsets, keeping
+// getScaleNotes the sole place that performs rotation/variant arithmetic.
+function modeIntervals(family: ScaleFamily, modeId: string): number[] {
+  return getScaleNotes(0, family, modeId);
 }
 
 export type TriadQuality = "major" | "minor" | "diminished" | "augmented";
@@ -64,32 +44,34 @@ export type TriadQuality = "major" | "minor" | "diminished" | "augmented";
 const ROMAN_NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII"];
 
 // Semitone gap from one scale degree to another, unwrapped across the
-// octave boundary - e.g. going from degree index 6 back to 0 lands "below"
-// in the raw interval table, so a negative gap means it actually wrapped
-// forward by an octave.
-function intervalGap(mode: ModeName, fromIndex: number, toIndex: number): number {
-  const intervals = MODES[mode];
+// octave boundary - e.g. going from the last degree back to the first
+// lands "below" in the raw interval table, so a negative gap means it
+// actually wrapped forward by an octave.
+function intervalGap(intervals: number[], fromIndex: number, toIndex: number): number {
   const gap = intervals[toIndex] - intervals[fromIndex];
   return gap > 0 ? gap : gap + 12;
 }
 
-// Derives a diatonic triad's quality from the mode's own interval table
-// instead of a hardcoded per-mode lookup, so e.g. Locrian's diminished
-// root triad (and any mode's non-root triad) falls out of the math.
-export function getTriadQuality(mode: ModeName, degreeIndex: number): TriadQuality {
-  const third = (degreeIndex + 2) % 7;
-  const fifth = (degreeIndex + 4) % 7;
-  const rootToThird = intervalGap(mode, degreeIndex, third);
-  const thirdToFifth = intervalGap(mode, third, fifth);
+// Derives a diatonic triad's quality from the mode's own (rotated) interval
+// pattern instead of a hardcoded per-mode lookup, so e.g. Locrian's
+// diminished root triad falls out of the math. Only meaningful for a
+// 7-note interval pattern - tertian triads built by skipping every other
+// scale degree assume 7 degrees per octave (see design.md "Non-goals").
+export function getTriadQuality(intervals: number[], degreeIndex: number): TriadQuality {
+  const n = intervals.length;
+  const third = (degreeIndex + 2) % n;
+  const fifth = (degreeIndex + 4) % n;
+  const rootToThird = intervalGap(intervals, degreeIndex, third);
+  const thirdToFifth = intervalGap(intervals, third, fifth);
   if (rootToThird === 4 && thirdToFifth === 3) return "major";
   if (rootToThird === 3 && thirdToFifth === 4) return "minor";
   if (rootToThird === 3 && thirdToFifth === 3) return "diminished";
   return "augmented";
 }
 
-export function getRomanNumeral(mode: ModeName, degreeIndex: number): string {
+export function getRomanNumeral(intervals: number[], degreeIndex: number): string {
   const numeral = ROMAN_NUMERALS[degreeIndex];
-  switch (getTriadQuality(mode, degreeIndex)) {
+  switch (getTriadQuality(intervals, degreeIndex)) {
     case "major":
       return numeral;
     case "minor":
@@ -109,26 +91,42 @@ export type DiatonicDegree = {
   quality: TriadQuality;
 };
 
-export function getDiatonicDegrees(root: string, mode: ModeName): DiatonicDegree[] {
-  const rootIdx = CHROMATIC.indexOf(root as NoteName);
-  const degreeLabels = getDegreeLabels(mode);
-  return MODES[mode].map((interval, index) => ({
+// Diatonic triads only generalize to 7-note families (Major, Harmonic
+// Minor) - callers gate this on family.degreeCount === 7 and hide the
+// triad UI otherwise (see design.md "Non-goals").
+export function getDiatonicDegrees(
+  root: NoteName,
+  family: ScaleFamily,
+  modeId: string,
+): DiatonicDegree[] {
+  const rootIdx = CHROMATIC.indexOf(root);
+  const intervals = modeIntervals(family, modeId);
+  return intervals.map((interval, index) => ({
     index,
     noteName: CHROMATIC[(rootIdx + interval) % 12],
-    degreeLabel: degreeLabels[index],
-    romanNumeral: getRomanNumeral(mode, index),
-    quality: getTriadQuality(mode, index),
+    degreeLabel: degreeLabelForSemitone(interval),
+    romanNumeral: getRomanNumeral(intervals, index),
+    quality: getTriadQuality(intervals, index),
   }));
 }
 
 // The 3 degree-label strings (e.g. "1", "b3", "5") making up the diatonic
 // triad rooted at degreeIndex, for cheap per-note membership checks against
 // FretNote.degree at render time.
-export function getTriadDegreeLabels(mode: ModeName, degreeIndex: number): Set<string> {
-  const degreeLabels = getDegreeLabels(mode);
-  const third = (degreeIndex + 2) % 7;
-  const fifth = (degreeIndex + 4) % 7;
-  return new Set([degreeLabels[degreeIndex], degreeLabels[third], degreeLabels[fifth]]);
+export function getTriadDegreeLabels(
+  family: ScaleFamily,
+  modeId: string,
+  degreeIndex: number,
+): Set<string> {
+  const intervals = modeIntervals(family, modeId);
+  const n = intervals.length;
+  const third = (degreeIndex + 2) % n;
+  const fifth = (degreeIndex + 4) % n;
+  return new Set([
+    degreeLabelForSemitone(intervals[degreeIndex]),
+    degreeLabelForSemitone(intervals[third]),
+    degreeLabelForSemitone(intervals[fifth]),
+  ]);
 }
 
 export type FretNote = {
@@ -142,13 +140,28 @@ export type FretNote = {
   positions?: PositionId[]; // which of the 5 positions this note belongs to (can be more than one where shapes overlap)
 };
 
-export function buildFretboard(root: string, mode: ModeName, maxFret = 24): FretNote[][] {
-  const scaleMap = getScaleMap(root, mode);
+export function buildFretboard(
+  root: NoteName,
+  family: ScaleFamily,
+  modeId: string,
+  variantId?: string,
+  maxFret = 24,
+): FretNote[][] {
+  const rootIdx = CHROMATIC.indexOf(root);
+  // rootMidi 0 anchor: getScaleNotes' output then equals each note's own
+  // semitone offset from root, which is all buildFretboard needs (it never
+  // touches a real octave).
+  const degreeByOffset = new Map<number, string>();
+  for (const offset of getScaleNotes(0, family, modeId, variantId)) {
+    degreeByOffset.set(offset, degreeLabelForSemitone(offset));
+  }
+
   const fretboard = OPEN_STRINGS.map((openMidi) =>
     Array.from({ length: maxFret + 1 }, (_, fret) => {
       const midi = openMidi + fret;
       const name = midiToNoteName(midi);
-      const degree = scaleMap.get(name);
+      const offset = (((midi % 12) - rootIdx) + 12) % 12;
+      const degree = degreeByOffset.get(offset);
       return {
         fret,
         midi,
@@ -160,7 +173,14 @@ export function buildFretboard(root: string, mode: ModeName, maxFret = 24): Fret
       };
     }),
   );
-  tagPositions(fretboard, root, maxFret);
+
+  // CAGED position shapes (positions.ts) are literal Major-scale fingering
+  // templates - they're only geometrically valid for the Major family, not
+  // generically for any 7-note interval pattern (Harmonic Minor's
+  // whole/half-step spacing differs). See design.md "Non-goals".
+  if (family.id === "major") {
+    tagPositions(fretboard, root, maxFret);
+  }
   return fretboard;
 }
 
@@ -189,6 +209,7 @@ function tagPositions(fretboard: FretNote[][], root: string, maxFret: number) {
 // Absolute fret range(s) a position occupies on the real fretboard for a
 // given root, mirroring tagPositions' placement math. A position can occupy
 // more than one range within 0-maxFret since shapes repeat every 12 frets.
+// Only valid for the Major family - see buildFretboard's tagPositions gate.
 export function getPositionRanges(
   root: string,
   pos: PositionId,

@@ -4,14 +4,8 @@ import { Dice5 } from "lucide-react";
 
 import { Switch } from "@/components/ui/switch";
 import { POSITION_IDS, type PositionId } from "@/lib/positions";
-import {
-  CHROMATIC,
-  getDiatonicDegrees,
-  MODE_LABELS,
-  type ModeName,
-  type NoteName,
-  randomRoot,
-} from "@/lib/theory";
+import { SCALE_FAMILIES, type ScaleFamily } from "@/lib/scales";
+import { CHROMATIC, getDiatonicDegrees, randomRoot, type NoteName } from "@/lib/theory";
 
 export type DisplayMode = "note" | "degree";
 export type SelectedPosition = "all" | PositionId;
@@ -19,8 +13,12 @@ export type SelectedPosition = "all" | PositionId;
 type Props = {
   root: NoteName;
   onRootChange: (root: NoteName) => void;
-  mode: ModeName;
-  onModeChange: (mode: ModeName) => void;
+  family: ScaleFamily;
+  onFamilyChange: (familyId: string) => void;
+  modeId: string;
+  onModeChange: (modeId: string) => void;
+  variantId: string | undefined;
+  onVariantChange: (variantId: string | undefined) => void;
   displayMode: DisplayMode;
   onDisplayModeChange: (mode: DisplayMode) => void;
   selectedPosition: SelectedPosition;
@@ -28,16 +26,6 @@ type Props = {
   selectedTriadDegree: number | null;
   onSelectedTriadDegreeChange: (degree: number | null) => void;
 };
-
-const MODE_ORDER: ModeName[] = [
-  "ionian",
-  "dorian",
-  "phrygian",
-  "lydian",
-  "mixolydian",
-  "aeolian",
-  "locrian",
-];
 
 const TAB_BUTTON_CLASS = (active: boolean) =>
   `shrink-0 rounded-md px-2.5 py-1 text-sm font-medium transition-colors ${
@@ -49,8 +37,12 @@ const TAB_BUTTON_CLASS = (active: boolean) =>
 export function KeyModeBar({
   root,
   onRootChange,
-  mode,
+  family,
+  onFamilyChange,
+  modeId,
   onModeChange,
+  variantId,
+  onVariantChange,
   displayMode,
   onDisplayModeChange,
   selectedPosition,
@@ -58,7 +50,14 @@ export function KeyModeBar({
   selectedTriadDegree,
   onSelectedTriadDegreeChange,
 }: Props) {
-  const diatonicDegrees = getDiatonicDegrees(root, mode);
+  // CAGED position shapes are literal Major-scale fingering templates and
+  // don't generalize to other families (see theory.ts buildFretboard).
+  // Diatonic triads generalize to any 7-note family (Major, Harmonic
+  // Minor) but not to Pentatonic. See design.md "Non-goals".
+  const showPositions = family.id === "major";
+  const showTriads = family.degreeCount === 7;
+  const diatonicDegrees = showTriads ? getDiatonicDegrees(root, family, modeId) : [];
+
   return (
     <div className="flex w-full flex-col gap-4">
       <section className="flex flex-col gap-2">
@@ -91,66 +90,106 @@ export function KeyModeBar({
       </section>
 
       <section className="flex flex-col gap-2">
-        <span className="text-sm text-text-muted">Mode</span>
+        <span className="text-sm text-text-muted">Family</span>
         <div className="flex flex-wrap items-center gap-2">
-          {MODE_ORDER.map((m) => (
+          {SCALE_FAMILIES.map((f) => (
             <button
-              key={m}
+              key={f.id}
               type="button"
-              onClick={() => onModeChange(m)}
-              className={TAB_BUTTON_CLASS(m === mode)}
+              onClick={() => onFamilyChange(f.id)}
+              className={TAB_BUTTON_CLASS(f.id === family.id)}
             >
-              {MODE_LABELS[m]}
+              {f.displayName}
             </button>
           ))}
         </div>
       </section>
 
-      <section className="flex flex-col gap-2">
-        <span className="text-sm text-text-muted">Position</span>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onSelectedPositionChange("all")}
-            className={TAB_BUTTON_CLASS(selectedPosition === "all")}
-          >
-            All
-          </button>
-          {POSITION_IDS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onSelectedPositionChange(id)}
-              className={TAB_BUTTON_CLASS(selectedPosition === id)}
-            >
-              {id}
-            </button>
-          ))}
-        </div>
-      </section>
+      {family.modes.length > 1 && (
+        <section className="flex flex-col gap-2">
+          <span className="text-sm text-text-muted">Mode</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {family.modes.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => onModeChange(m.id)}
+                className={TAB_BUTTON_CLASS(m.id === modeId)}
+              >
+                {m.displayName}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
-      <section className="flex flex-col gap-2">
-        <span className="text-sm text-text-muted">Triad</span>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onSelectedTriadDegreeChange(null)}
-            className={TAB_BUTTON_CLASS(selectedTriadDegree === null)}
-          >
-            None
-          </button>
-          {diatonicDegrees.map((degree) => (
+      {family.variants && family.variants.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <span className="text-sm text-text-muted">Variant</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {family.variants.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => onVariantChange(variantId === v.id ? undefined : v.id)}
+                className={TAB_BUTTON_CLASS(variantId === v.id)}
+              >
+                {v.displayName}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showPositions && (
+        <section className="flex flex-col gap-2">
+          <span className="text-sm text-text-muted">Position</span>
+          <div className="flex flex-wrap items-center gap-2">
             <button
-              key={degree.index}
               type="button"
-              onClick={() => onSelectedTriadDegreeChange(degree.index)}
-              className={TAB_BUTTON_CLASS(selectedTriadDegree === degree.index)}
+              onClick={() => onSelectedPositionChange("all")}
+              className={TAB_BUTTON_CLASS(selectedPosition === "all")}
             >
-              {degree.romanNumeral}
+              All
             </button>
-          ))}
-        </div>
-      </section>
+            {POSITION_IDS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onSelectedPositionChange(id)}
+                className={TAB_BUTTON_CLASS(selectedPosition === id)}
+              >
+                {id}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {showTriads && (
+        <section className="flex flex-col gap-2">
+          <span className="text-sm text-text-muted">Triad</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onSelectedTriadDegreeChange(null)}
+              className={TAB_BUTTON_CLASS(selectedTriadDegree === null)}
+            >
+              None
+            </button>
+            {diatonicDegrees.map((degree) => (
+              <button
+                key={degree.index}
+                type="button"
+                onClick={() => onSelectedTriadDegreeChange(degree.index)}
+                className={TAB_BUTTON_CLASS(selectedTriadDegree === degree.index)}
+              >
+                {degree.romanNumeral}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="flex items-center gap-6">
         <label className="flex items-center gap-2 text-sm">

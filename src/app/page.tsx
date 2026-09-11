@@ -6,6 +6,7 @@ import { Fretboard } from "@/components/Fretboard";
 import { KeyModeBar, type DisplayMode, type SelectedPosition } from "@/components/KeyModeBar";
 import { PracticeControls } from "@/components/PracticeControls";
 import { PracticeHistory } from "@/components/PracticeHistory";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useNotePlayer } from "@/hooks/useNotePlayer";
@@ -30,6 +31,7 @@ export default function Home() {
   const [selectedTriadDegree, setSelectedTriadDegree] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     setSessions(loadSessions());
@@ -76,9 +78,11 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen w-full flex-col items-center gap-8 px-4 pt-6 pb-4">
-      <ThemeToggle />
+      <header className="flex w-full max-w-5xl justify-center">
+        <ThemeToggle />
+      </header>
 
-      <div className="w-full max-w-2xl">
+      <SettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen}>
         <KeyModeBar
           root={root}
           onRootChange={setRoot}
@@ -91,9 +95,9 @@ export default function Home() {
           selectedTriadDegree={selectedTriadDegree}
           onSelectedTriadDegreeChange={setSelectedTriadDegree}
         />
-      </div>
+      </SettingsPanel>
 
-      <div className="flex w-full max-w-5xl flex-col gap-6">
+      <main className="flex w-full max-w-5xl flex-col gap-6">
         <Fretboard
           fretboard={fretboard}
           displayMode={displayMode}
@@ -105,9 +109,9 @@ export default function Home() {
         />
 
         <PracticeHistory sessions={sessions} />
-      </div>
+      </main>
 
-      <div className="sticky bottom-0 z-30 w-full max-w-2xl sm:static">
+      <footer className="sticky bottom-0 z-30 w-full max-w-2xl sm:static">
         <PracticeControls
           bpm={metronome.bpm}
           onBpmChange={metronome.setBpm}
@@ -120,7 +124,7 @@ export default function Home() {
           onStopwatchResume={stopwatch.resume}
           onStopwatchStop={handleStopwatchStop}
         />
-      </div>
+      </footer>
     </div>
   );
 }

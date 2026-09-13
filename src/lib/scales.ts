@@ -27,6 +27,7 @@ export type ScaleFamily = {
 
 const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
 const HARMONIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 11];
+const MELODIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 9, 11];
 const MAJOR_PENTATONIC_INTERVALS = [0, 2, 4, 7, 9];
 const MINOR_PENTATONIC_INTERVALS = [0, 3, 5, 7, 10];
 
@@ -59,6 +60,21 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
       { id: "phrygian-dominant", displayName: "Phrygian Dominant", rotationIndex: 4 },
       { id: "lydian-sharp-2", displayName: "Lydian ♯2", rotationIndex: 5 },
       { id: "super-locrian-bb7", displayName: "Super Locrian ♭♭7", rotationIndex: 6 },
+    ],
+  },
+  {
+    id: "melodic-minor",
+    displayName: "Melodic Minor",
+    degreeCount: 7,
+    intervalPattern: MELODIC_MINOR_INTERVALS,
+    modes: [
+      { id: "melodic-minor", displayName: "Melodic Minor", rotationIndex: 0 },
+      { id: "dorian-b2", displayName: "Dorian ♭2", rotationIndex: 1 },
+      { id: "lydian-augmented", displayName: "Lydian Augmented", rotationIndex: 2 },
+      { id: "lydian-dominant", displayName: "Lydian Dominant", rotationIndex: 3 },
+      { id: "mixolydian-b6", displayName: "Mixolydian ♭6", rotationIndex: 4 },
+      { id: "locrian-natural-2", displayName: "Locrian ♮2", rotationIndex: 5 },
+      { id: "super-locrian", displayName: "Super Locrian", rotationIndex: 6 },
     ],
   },
   {

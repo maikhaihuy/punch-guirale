@@ -83,6 +83,22 @@ export function getRomanNumeral(intervals: number[], degreeIndex: number): strin
   }
 }
 
+// Ordered note names for the active scale, e.g. ["C","D","E","F","G","A","B"]
+// for C Ionian. Degree-count-agnostic (works for Pentatonic too), unlike
+// getDiatonicDegrees which also derives triad quality and is gated to
+// 7-note families by its callers.
+export function getScaleNoteNames(
+  root: NoteName,
+  family: ScaleFamily,
+  modeId: string,
+  variantId?: string,
+): NoteName[] {
+  const rootIdx = CHROMATIC.indexOf(root);
+  return getScaleNotes(0, family, modeId, variantId).map(
+    (offset) => CHROMATIC[(rootIdx + offset) % 12],
+  );
+}
+
 export type DiatonicDegree = {
   index: number;
   noteName: NoteName;
@@ -108,6 +124,24 @@ export function getDiatonicDegrees(
     romanNumeral: getRomanNumeral(intervals, index),
     quality: getTriadQuality(intervals, index),
   }));
+}
+
+// Whole/half-step pattern between consecutive scale degrees (e.g.
+// ["W","W","H","W","W","W","H"] for Ionian). Only meaningful for 7-note
+// interval patterns, same as triad quality - callers gate on
+// family.degreeCount === 7 (see design.md "Non-goals").
+export function getWholeHalfPattern(family: ScaleFamily, modeId: string): string[] {
+  const intervals = modeIntervals(family, modeId);
+  const n = intervals.length;
+  return intervals.map((_, i) => (intervalGap(intervals, i, (i + 1) % n) === 1 ? "H" : "W"));
+}
+
+// The degree-label string (e.g. "b3") for a single scale degree index, so
+// callers can distinguish "the selected degree's own note" from the other
+// two notes making up its diatonic triad (see getTriadDegreeLabels below).
+export function getDegreeLabel(family: ScaleFamily, modeId: string, degreeIndex: number): string {
+  const intervals = modeIntervals(family, modeId);
+  return degreeLabelForSemitone(intervals[degreeIndex]);
 }
 
 // The 3 degree-label strings (e.g. "1", "b3", "5") making up the diatonic

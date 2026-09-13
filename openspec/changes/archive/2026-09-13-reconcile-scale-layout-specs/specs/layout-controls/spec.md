@@ -1,11 +1,4 @@
-## Purpose
-
-Defines how the app's controls (key/mode/position selection, display
-toggles, and playback controls) are grouped, labeled, and visually
-distinguished on the page, independent of the music-theory or audio
-behavior those controls trigger.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Header, Body, and Footer layout areas
 The system SHALL present the page as three layout areas, identical in
@@ -31,13 +24,3 @@ width.
 - **WHEN** the page is loaded on any viewport size
 - **THEN** the Footer area remains fixed to the bottom of the viewport
   and spans its full width
-
-### Requirement: Playback controls are icon-only with accessible labels
-The system SHALL render the metronome and stopwatch controls as icon-only
-buttons, each with a non-visible accessible label describing its action.
-
-#### Scenario: Identifying a playback control via assistive technology
-- **WHEN** a screen reader focuses a metronome or stopwatch button
-- **THEN** it announces a label describing the button's action (e.g. "Start
-  metronome", "Reset stopwatch") even though no visible text is rendered
-  on the button

@@ -1,23 +1,22 @@
 "use client";
 
+import { Minus, Plus } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 
-import type { SelectedPosition } from "@/components/KeyModeBar";
 import type { FretNote } from "@/lib/theory";
 
 type Props = {
   fretboard: FretNote[][]; // [stringIndex][fret], stringIndex 0 = low E .. 5 = high E
   displayMode: "note" | "degree";
-  selectedPosition: SelectedPosition;
-  positionRanges: Array<{ lo: number; hi: number }>; // absolute fret ranges for selectedPosition, empty when "all"
   onNotePlay: (note: FretNote) => void;
-  autoFitMobile: boolean;
   triadDegreeLabels: Set<string> | null;
+  selectedDegreeLabel: string | null;
 };
 
 const STRING_NAMES = ["E", "A", "D", "G", "B", "E"]; // low E to high E, matches OPEN_STRINGS order
-const FRET_WIDTH = 52;
-const MIN_ZOOM_FRET_WIDTH = 28;
+const MIN_FRET = 1; // fret 0 (open string) is dropped from the grid entirely
+const ZOOMED_IN_FRETS = 12;
+const ZOOMED_OUT_FRETS = 24;
 const STRING_LABEL_WIDTH = 28;
 const STRING_GAP = 40;
 const TOP_PADDING = 20;
@@ -25,10 +24,11 @@ const BOTTOM_PADDING = 20;
 const DOT_RADIUS = 14;
 const TOUCH_RADIUS = 22;
 const TRIAD_RING_RADIUS = 18;
+const FALLBACK_FRET_WIDTH = 52;
 
 // Standard guitar fret-position inlays: single dot at these frets, double
 // dot (the octave markers) at 12 and 24. Purely a wayfinding overlay -
-// independent of the current scale/root/position selection.
+// independent of the current scale or root.
 const FRET_MARKERS: Record<number, 1 | 2> = {
   3: 1,
   5: 1,
@@ -50,8 +50,8 @@ type FretboardNoteProps = {
   cy: number;
   label: string | undefined;
   displayMode: "note" | "degree";
-  dimmed: boolean;
   showTriadRing: boolean;
+  isSelectedDegree: boolean;
   isEcho: boolean;
   onPlay: () => void;
   onHoverChange: (name: string | null) => void;
@@ -71,8 +71,8 @@ const FretboardNote = memo(function FretboardNote({
   cy,
   label,
   displayMode,
-  dimmed,
   showTriadRing,
+  isSelectedDegree,
   isEcho,
   onPlay,
   onHoverChange,
@@ -120,10 +120,16 @@ const FretboardNote = memo(function FretboardNote({
       onPointerLeave={clearInteraction}
       onPointerCancel={clearInteraction}
       className="cursor-pointer"
-      style={{ opacity: dimmed ? 0.28 : 1, transition: "opacity 0.2s ease" }}
     >
       <circle cx={cx} cy={cy} r={TOUCH_RADIUS} fill="transparent" />
-      {showTriadRing && <circle cx={cx} cy={cy} r={TRIAD_RING_RADIUS} className="fret-note--triad" />}
+      {showTriadRing && (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={TRIAD_RING_RADIUS}
+          className={isSelectedDegree ? "fret-note--selected-degree" : "fret-note--triad"}
+        />
+      )}
       <circle cx={cx} cy={cy} r={DOT_RADIUS} className={dotClassName} strokeWidth={2} />
       <text x={cx} y={cy} dominantBaseline="middle" textAnchor="middle" className={labelClassName}>
         {label}
@@ -135,164 +141,184 @@ const FretboardNote = memo(function FretboardNote({
 export function Fretboard({
   fretboard,
   displayMode,
-  selectedPosition,
-  positionRanges,
   onNotePlay,
-  autoFitMobile,
   triadDegreeLabels,
+  selectedDegreeLabel,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [zoomFretWidth, setZoomFretWidth] = useState<number | null>(null);
+  const [visibleFretCount, setVisibleFretCount] = useState<number>(ZOOMED_IN_FRETS);
+  const [containerWidth, setContainerWidth] = useState(0);
   const [hoveredNoteName, setHoveredNoteName] = useState<string | null>(null);
 
-  // Auto-fit only on an explicit position change (or mount), never on
-  // resize/scroll, so it doesn't fight a user's manual scroll/zoom mid-session.
   useEffect(() => {
     const container = containerRef.current;
-    if (!autoFitMobile || positionRanges.length === 0 || !container) {
-      setZoomFretWidth(null);
-      return;
-    }
-    const range = positionRanges[0];
-    const spanFrets = range.hi - range.lo + 1;
-    const available = container.clientWidth - STRING_LABEL_WIDTH - 8;
-    const fitted = Math.floor(available / spanFrets);
-    setZoomFretWidth(Math.max(MIN_ZOOM_FRET_WIDTH, Math.min(FRET_WIDTH, fitted)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPosition, autoFitMobile]);
+    if (!container) return;
+    const observer = new ResizeObserver((entries) => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || positionRanges.length === 0) return;
-    const fw = zoomFretWidth ?? FRET_WIDTH;
-    container.scrollLeft = Math.max(0, positionRanges[0].lo * fw - 8);
-  }, [zoomFretWidth, positionRanges]);
-
-  const fretWidth = zoomFretWidth ?? FRET_WIDTH;
   const numStrings = fretboard.length;
-  const numFrets = fretboard[0]?.length ?? 0;
-  const boardWidth = STRING_LABEL_WIDTH + fretWidth * numFrets;
+  const totalFrets = fretboard[0]?.length ?? 0; // includes dropped fret 0
+  const maxDisplayFrets = Math.max(0, totalFrets - MIN_FRET);
+  const displayFretCount = Math.min(visibleFretCount, maxDisplayFrets);
+  const fretWidth =
+    containerWidth > 0
+      ? (containerWidth - STRING_LABEL_WIDTH) / displayFretCount
+      : FALLBACK_FRET_WIDTH;
+  const boardWidth = STRING_LABEL_WIDTH + fretWidth * displayFretCount;
   const boardHeight = TOP_PADDING + BOTTOM_PADDING + STRING_GAP * (numStrings - 1);
+  const maxVisibleFret = MIN_FRET + displayFretCount - 1;
 
   const stringY = (stringIndex: number) =>
     TOP_PADDING + (numStrings - 1 - stringIndex) * STRING_GAP;
-  const fretX = (fret: number) => STRING_LABEL_WIDTH + fret * fretWidth + fretWidth / 2;
+  const fretX = (fret: number) => STRING_LABEL_WIDTH + (fret - MIN_FRET) * fretWidth + fretWidth / 2;
+  const fretLeftX = (fret: number) => STRING_LABEL_WIDTH + (fret - MIN_FRET) * fretWidth;
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-x-auto overflow-y-hidden bg-surface">
-      <div style={{ width: boardWidth, minWidth: boardWidth }}>
-        <div
-          className="sticky top-0 z-10 flex border-b border-black/10 bg-surface/95 backdrop-blur-sm dark:border-white/10"
-          style={{ width: boardWidth }}
-        >
-          <div style={{ width: STRING_LABEL_WIDTH }} />
-          {Array.from({ length: numFrets }, (_, fret) => (
+    <div className="flex flex-col gap-1.5">
+      <div className="relative">
+        <div ref={containerRef} className="overflow-hidden bg-surface">
+          <div style={{ width: boardWidth }}>
             <div
-              key={fret}
-              className="flex shrink-0 items-center justify-center text-xs font-medium tabular-nums text-text-muted"
-              style={{ width: fretWidth }}
+              className="flex border-b border-black/10 bg-surface/95 dark:border-white/10"
+              style={{ width: boardWidth }}
             >
-              {fret}
+              <div style={{ width: STRING_LABEL_WIDTH }} />
+              {Array.from({ length: displayFretCount }, (_, i) => i + MIN_FRET).map((fret) => (
+                <div
+                  key={fret}
+                  className="flex shrink-0 items-center justify-center text-xs font-medium tabular-nums text-text-muted"
+                  style={{ width: fretWidth }}
+                >
+                  {fret}
+                </div>
+              ))}
             </div>
-          ))}
+
+            <svg width={boardWidth} height={boardHeight} role="img" aria-label="Fretboard">
+              {Object.entries(FRET_MARKERS)
+                .filter(([fretStr]) => Number(fretStr) <= maxVisibleFret)
+                .map(([fretStr, count]) => {
+                  const fret = Number(fretStr);
+                  const cx = fretX(fret);
+                  const cy = boardHeight / 2;
+                  if (count === 1) {
+                    return <circle key={`marker-${fret}`} cx={cx} cy={cy} r={MARKER_RADIUS} className="fill-text-muted/40" />;
+                  }
+                  return (
+                    <g key={`marker-${fret}`}>
+                      <circle cx={cx} cy={cy - DOUBLE_MARKER_OFFSET} r={MARKER_RADIUS} className="fill-text-muted/40" />
+                      <circle cx={cx} cy={cy + DOUBLE_MARKER_OFFSET} r={MARKER_RADIUS} className="fill-text-muted/40" />
+                    </g>
+                  );
+                })}
+
+              {Array.from({ length: displayFretCount }, (_, i) => i + MIN_FRET).map((fret) => (
+                <line
+                  key={`fretline-${fret}`}
+                  x1={fretLeftX(fret)}
+                  x2={fretLeftX(fret)}
+                  y1={TOP_PADDING - 8}
+                  y2={boardHeight - BOTTOM_PADDING + 8}
+                  stroke="currentColor"
+                  strokeWidth={1}
+                  className="text-text/20"
+                />
+              ))}
+
+              {STRING_NAMES.map((name, stringIndex) => {
+                // Fret 0 (open string) isn't drawn as a numbered fret dot
+                // anymore, but its note should stay reachable - the string
+                // label itself doubles as the open-string "note", playable
+                // whenever that open note is in the current scale.
+                const openNote = fretboard[stringIndex]?.[0];
+                const playable = !!openNote?.inScale;
+                return (
+                  <g key={`string-${stringIndex}`}>
+                    <line
+                      x1={STRING_LABEL_WIDTH}
+                      x2={boardWidth}
+                      y1={stringY(stringIndex)}
+                      y2={stringY(stringIndex)}
+                      stroke="currentColor"
+                      strokeWidth={1.5}
+                      className="text-text/30"
+                    />
+                    <text
+                      x={STRING_LABEL_WIDTH / 2}
+                      y={stringY(stringIndex)}
+                      dominantBaseline="middle"
+                      textAnchor="middle"
+                      onPointerDown={playable ? () => onNotePlay(openNote) : undefined}
+                      className={`text-[11px] font-medium ${
+                        playable
+                          ? "cursor-pointer fill-text hover:fill-accent"
+                          : "fill-text-muted"
+                      }`}
+                    >
+                      {name}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {fretboard.map((frets, stringIndex) =>
+                frets.map((note) => {
+                  if (!note.inScale || note.fret < MIN_FRET || note.fret > maxVisibleFret) return null;
+                  const label = displayMode === "note" ? note.name : note.degree;
+                  const showTriadRing =
+                    !!triadDegreeLabels &&
+                    note.degree !== undefined &&
+                    triadDegreeLabels.has(note.degree) &&
+                    !note.isRoot;
+                  const isSelectedDegree =
+                    selectedDegreeLabel !== null && note.degree === selectedDegreeLabel && !note.isRoot;
+                  const isEcho = note.name === hoveredNoteName;
+                  return (
+                    <FretboardNote
+                      key={`note-${stringIndex}-${note.fret}`}
+                      note={note}
+                      cx={fretX(note.fret)}
+                      cy={stringY(stringIndex)}
+                      displayMode={displayMode}
+                      label={label}
+                      showTriadRing={showTriadRing}
+                      isSelectedDegree={isSelectedDegree}
+                      isEcho={isEcho}
+                      onPlay={() => onNotePlay(note)}
+                      onHoverChange={setHoveredNoteName}
+                    />
+                  );
+                }),
+              )}
+            </svg>
+          </div>
         </div>
 
-        <svg width={boardWidth} height={boardHeight} role="img" aria-label="Fretboard">
-          {selectedPosition !== "all" &&
-            positionRanges.map((range, i) => (
-              <rect
-                key={`band-${i}`}
-                x={STRING_LABEL_WIDTH + range.lo * fretWidth}
-                y={0}
-                width={(range.hi - range.lo + 1) * fretWidth}
-                height={boardHeight}
-                className="fill-text/6"
-              />
-            ))}
-
-          {Object.entries(FRET_MARKERS).map(([fretStr, count]) => {
-            const fret = Number(fretStr);
-            const cx = fretX(fret);
-            const cy = boardHeight / 2;
-            if (count === 1) {
-              return <circle key={`marker-${fret}`} cx={cx} cy={cy} r={MARKER_RADIUS} className="fill-text-muted/40" />;
-            }
-            return (
-              <g key={`marker-${fret}`}>
-                <circle cx={cx} cy={cy - DOUBLE_MARKER_OFFSET} r={MARKER_RADIUS} className="fill-text-muted/40" />
-                <circle cx={cx} cy={cy + DOUBLE_MARKER_OFFSET} r={MARKER_RADIUS} className="fill-text-muted/40" />
-              </g>
-            );
-          })}
-
-          {Array.from({ length: numFrets }, (_, fret) => (
-            <line
-              key={`fretline-${fret}`}
-              x1={STRING_LABEL_WIDTH + fret * fretWidth}
-              x2={STRING_LABEL_WIDTH + fret * fretWidth}
-              y1={TOP_PADDING - 8}
-              y2={boardHeight - BOTTOM_PADDING + 8}
-              stroke="currentColor"
-              strokeWidth={fret === 0 ? 4 : 1}
-              className="text-text/20"
-            />
-          ))}
-
-          {STRING_NAMES.map((name, stringIndex) => (
-            <g key={`string-${stringIndex}`}>
-              <line
-                x1={STRING_LABEL_WIDTH}
-                x2={boardWidth}
-                y1={stringY(stringIndex)}
-                y2={stringY(stringIndex)}
-                stroke="currentColor"
-                strokeWidth={1.5}
-                className="text-text/30"
-              />
-              <text
-                x={STRING_LABEL_WIDTH / 2}
-                y={stringY(stringIndex)}
-                dominantBaseline="middle"
-                textAnchor="middle"
-                className="fill-text-muted text-[11px] font-medium"
-              >
-                {name}
-              </text>
-            </g>
-          ))}
-
-          {fretboard.map((frets, stringIndex) =>
-            frets.map((note) => {
-              if (!note.inScale) return null;
-              const label = displayMode === "note" ? note.name : note.degree;
-              const dimmed =
-                selectedPosition !== "all" &&
-                !note.isRoot &&
-                !note.positions?.includes(selectedPosition);
-              const showTriadRing =
-                !!triadDegreeLabels &&
-                note.degree !== undefined &&
-                triadDegreeLabels.has(note.degree) &&
-                !note.isRoot;
-              const isEcho = note.name === hoveredNoteName;
-              return (
-                <FretboardNote
-                  key={`note-${stringIndex}-${note.fret}`}
-                  note={note}
-                  cx={fretX(note.fret)}
-                  cy={stringY(stringIndex)}
-                  displayMode={displayMode}
-                  label={label}
-                  dimmed={dimmed}
-                  showTriadRing={showTriadRing}
-                  isEcho={isEcho}
-                  onPlay={() => onNotePlay(note)}
-                  onHoverChange={setHoveredNoteName}
-                />
-              );
-            }),
-          )}
-        </svg>
+        <div className="absolute right-2 bottom-2 flex flex-col overflow-hidden rounded-md border border-black/10 bg-surface shadow-sm dark:border-white/10">
+          <button
+            type="button"
+            onClick={() => setVisibleFretCount(ZOOMED_IN_FRETS)}
+            disabled={visibleFretCount === ZOOMED_IN_FRETS}
+            aria-label="Zoom in"
+            className="flex size-7 items-center justify-center text-text-muted hover:bg-black/5 hover:text-text disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-white/10"
+          >
+            <Plus className="size-4" aria-hidden />
+          </button>
+          <div className="h-px bg-black/10 dark:bg-white/10" />
+          <button
+            type="button"
+            onClick={() => setVisibleFretCount(ZOOMED_OUT_FRETS)}
+            disabled={visibleFretCount === ZOOMED_OUT_FRETS}
+            aria-label="Zoom out"
+            className="flex size-7 items-center justify-center text-text-muted hover:bg-black/5 hover:text-text disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-white/10"
+          >
+            <Minus className="size-4" aria-hidden />
+          </button>
+        </div>
       </div>
     </div>
   );

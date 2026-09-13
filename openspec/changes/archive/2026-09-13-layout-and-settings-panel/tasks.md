@@ -12,7 +12,7 @@
 - [x] 1.3 Style the popup as a left/right-anchored panel (full-height
       or near-full-height on mobile, fixed-width on desktop) using
       Tailwind, matching existing design tokens.
-- [ ] 1.4 Verify dismiss behavior: re-clicking the toggle, clicking
+- [x] 1.4 Verify dismiss behavior: re-clicking the toggle, clicking
       the backdrop, and pressing Escape all close it, and Escape
       returns focus to the toggle (exercise `Drawer`'s built-in
       behavior; add manual handling only if it doesn't already cover
@@ -22,7 +22,7 @@
 
 - [x] 2.1 Render `KeyModeBar` as the `SettingsPanel`'s content instead
       of its current always-visible placement in `page.tsx`.
-- [ ] 2.2 Confirm `KeyModeBar`'s internal layout (labeled rows, switch
+- [x] 2.2 Confirm `KeyModeBar`'s internal layout (labeled rows, switch
       row, random-key styling) still renders correctly inside the
       popup's width/height constraints; adjust `SettingsPanel` sizing
       (not `KeyModeBar`'s internals) if it doesn't.
@@ -51,21 +51,21 @@
 
 ## 4. Verification
 
-- [ ] 4.1 Run `pnpm lint`.
+- [x] 4.1 Run `pnpm lint`.
 - [ ] 4.2 Run `pnpm dev` and manually verify on desktop and a mobile
       viewport: settings toggle opens/closes the panel; outside click
       and Escape close it; key/mode/position selection and both
       switches still work identically to before; fretboard and
       practice list still render in the Body; footer playback controls
       still work and stay sticky.
-- [ ] 4.3 Verify no hydration warnings in the browser console on load
+- [x] 4.3 Verify no hydration warnings in the browser console on load
       (practice history still seeded via `useEffect`, unaffected by
       this change, but confirm the panel's own state doesn't introduce
       an SSR/client mismatch).
 
 ## 5. Spec sync
 
-- [ ] 5.1 Run `/opsx:archive` (or `openspec archive`) once implementation
+- [s] 5.1 Run `/opsx:archive` (or `openspec archive`) once implementation
       matches `specs/layout-controls/spec.md` and
       `specs/settings-panel/spec.md` in this change, to merge the delta
       into `openspec/specs/`.

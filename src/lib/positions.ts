@@ -18,6 +18,7 @@
 // fretboard before shipping, as called out in tasks.md.
 
 export type PositionId = 1 | 2 | 3 | 4 | 5;
+export type SelectedPosition = "all" | PositionId;
 
 export const POSITION_IDS: PositionId[] = [1, 2, 3, 4, 5];
 

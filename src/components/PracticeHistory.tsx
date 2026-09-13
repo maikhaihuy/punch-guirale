@@ -1,7 +1,13 @@
 "use client";
 
-import { MODE_LABELS } from "@/lib/theory";
+import { DEFAULT_FAMILY_ID, getFamily, getMode } from "@/lib/scales";
 import type { PracticeSession } from "@/lib/storage";
+
+function modeLabel(session: PracticeSession): string {
+  const family = getFamily(session.familyId ?? DEFAULT_FAMILY_ID);
+  const mode = family && getMode(family, session.mode);
+  return mode?.displayName ?? session.mode;
+}
 
 function formatDuration(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
@@ -42,7 +48,7 @@ export function PracticeHistory({ sessions }: Props) {
             >
               <span className="text-text/70">{formatDate(s.date)}</span>
               <span className="font-display font-medium">
-                {s.rootNote} {MODE_LABELS[s.mode]}
+                {s.rootNote} {modeLabel(s)}
               </span>
               <span className="text-text/70">{s.bpm} BPM</span>
               <span className="tabular-nums">{formatDuration(s.durationSec)}</span>

@@ -1,9 +1,12 @@
-import type { ModeName } from "./theory";
-
 export type PracticeSession = {
   date: string;
   rootNote: string;
-  mode: ModeName;
+  // familyId is absent on sessions logged before the family/mode schema
+  // (Milestone 4) - all pre-migration sessions were implicitly "major",
+  // and mode ids for that family are unchanged, so no data migration is
+  // needed (see openspec design.md "Migration / compatibility").
+  familyId?: string;
+  mode: string;
   bpm: number;
   durationSec: number;
 };

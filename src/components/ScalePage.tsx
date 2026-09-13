@@ -1,12 +1,14 @@
 "use client";
 
+import { Guitar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { Fretboard } from "@/components/Fretboard";
-import { KeyModeBar, type DisplayMode, type SelectedPosition } from "@/components/KeyModeBar";
 import { PracticeControls } from "@/components/PracticeControls";
 import { PracticeHistory } from "@/components/PracticeHistory";
+import { ScaleDashboard, type DisplayMode } from "@/components/ScaleDashboard";
+import { ScaleNav } from "@/components/ScaleNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useNotePlayer } from "@/hooks/useNotePlayer";
@@ -14,9 +16,7 @@ import { useStopwatch } from "@/hooks/useStopwatch";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { getFamily, type ScaleFamily } from "@/lib/scales";
 import { appendSession, loadSessions, type PracticeSession } from "@/lib/storage";
-import { buildFretboard, getPositionRanges, getTriadDegreeLabels, type NoteName } from "@/lib/theory";
-
-const MOBILE_QUERY = "(max-width: 640px)";
+import { buildFretboard, getDegreeLabel, getTriadDegreeLabels, type NoteName } from "@/lib/theory";
 
 type Props = {
   family: ScaleFamily;
@@ -29,45 +29,39 @@ export function ScalePage({ family, modeId, variantId }: Props) {
 
   const [root, setRoot] = useState<NoteName>("C");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("note");
-  const [selectedPosition, setSelectedPosition] = useState<SelectedPosition>("all");
   const [selectedTriadDegree, setSelectedTriadDegree] = useState<number | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
 
   useEffect(() => {
     setSessions(loadSessions());
   }, []);
 
+  // A selected degree index is only meaningful within the family it was
+  // picked in - switching families (different degreeCount) could leave
+  // a stale index out of range for the new family's degree list.
   useEffect(() => {
-    const mql = window.matchMedia(MOBILE_QUERY);
-    setIsMobile(mql.matches);
-    if (mql.matches) setSelectedPosition(1);
-    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  // Position markers and triad highlighting don't apply to every family
-  // (see design.md "Non-goals") - fall back to "inactive" rather than
-  // clearing the underlying selection, so it's restored if the user
-  // switches back to a family where it's meaningful.
-  const effectivePosition: SelectedPosition = family.id === "major" ? selectedPosition : "all";
-  const effectiveTriadDegree = family.degreeCount === 7 ? selectedTriadDegree : null;
+    setSelectedTriadDegree(null);
+  }, [family.id]);
 
   const fretboard = useMemo(
     () => buildFretboard(root, family, modeId, variantId),
     [root, family, modeId, variantId],
   );
-  const positionRanges = useMemo(
-    () => (effectivePosition === "all" ? [] : getPositionRanges(root, effectivePosition)),
-    [root, effectivePosition],
-  );
+  // The 3-note triad ring only generalizes to 7-note families (see
+  // design.md "Non-goals") - tertian triads need 7 degrees to stack
+  // thirds. The single-note highlight below has no such requirement, so
+  // it stays available for every family (e.g. Pentatonic).
   const triadDegreeLabels = useMemo(
     () =>
-      effectiveTriadDegree === null
+      selectedTriadDegree === null || family.degreeCount !== 7
         ? null
-        : getTriadDegreeLabels(family, modeId, effectiveTriadDegree),
-    [family, modeId, effectiveTriadDegree],
+        : getTriadDegreeLabels(family, modeId, selectedTriadDegree),
+    [family, modeId, selectedTriadDegree],
+  );
+  const selectedDegreeLabel = useMemo(
+    () =>
+      selectedTriadDegree === null ? null : getDegreeLabel(family, modeId, selectedTriadDegree),
+    [family, modeId, selectedTriadDegree],
   );
 
   const metronome = useMetronome();
@@ -114,43 +108,61 @@ export function ScalePage({ family, modeId, variantId }: Props) {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center gap-8 px-4 pt-6 pb-4">
-      <ThemeToggle />
+    <div className="flex min-h-screen w-full flex-col">
+      <header className="flex w-full items-center justify-between border-b border-black/10 px-4 py-3 dark:border-white/10">
+        <div className="flex flex-1 items-center justify-start">
+          <ScaleNav
+            family={family}
+            modeId={modeId}
+            variantId={variantId}
+            onFamilyChange={handleFamilyChange}
+            onModeChange={handleModeChange}
+            onVariantChange={handleVariantChange}
+          />
+        </div>
 
-      <div className="w-full max-w-2xl">
-        <KeyModeBar
-          root={root}
-          onRootChange={setRoot}
-          family={family}
-          onFamilyChange={handleFamilyChange}
-          modeId={modeId}
-          onModeChange={handleModeChange}
-          variantId={variantId}
-          onVariantChange={handleVariantChange}
-          displayMode={displayMode}
-          onDisplayModeChange={setDisplayMode}
-          selectedPosition={selectedPosition}
-          onSelectedPositionChange={setSelectedPosition}
-          selectedTriadDegree={selectedTriadDegree}
-          onSelectedTriadDegreeChange={setSelectedTriadDegree}
-        />
+        <div className="flex flex-1 items-center justify-center">
+          {/* Temporary placeholder - desktop and mobile will get distinct content here later */}
+          <div className="flex size-8 items-center justify-center rounded-full bg-black/5 text-text-muted dark:bg-white/10">
+            <Guitar className="size-4" aria-hidden />
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center justify-end">
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <div className="flex w-full flex-1 flex-col items-center gap-6 px-4 pt-6 pb-24">
+        <section className="flex w-full max-w-5xl flex-col">
+          <ScaleDashboard
+            root={root}
+            onRootChange={setRoot}
+            family={family}
+            modeId={modeId}
+            displayMode={displayMode}
+            onDisplayModeChange={setDisplayMode}
+            selectedTriadDegree={selectedTriadDegree}
+            onSelectedTriadDegreeChange={setSelectedTriadDegree}
+          />
+        </section>
+
+        <section className="flex w-full max-w-5xl flex-col">
+          <Fretboard
+            fretboard={fretboard}
+            displayMode={displayMode}
+            onNotePlay={(note) => void playNote(note.freq)}
+            triadDegreeLabels={triadDegreeLabels}
+            selectedDegreeLabel={selectedDegreeLabel}
+          />
+        </section>
+
+        <section className="flex w-full max-w-5xl flex-col">
+          <PracticeHistory sessions={sessions} />
+        </section>
       </div>
 
-      <div className="flex w-full max-w-5xl flex-col gap-6">
-        <Fretboard
-          fretboard={fretboard}
-          displayMode={displayMode}
-          selectedPosition={effectivePosition}
-          positionRanges={positionRanges}
-          onNotePlay={(note) => void playNote(note.freq)}
-          autoFitMobile={isMobile}
-          triadDegreeLabels={triadDegreeLabels}
-        />
-
-        <PracticeHistory sessions={sessions} />
-      </div>
-
-      <div className="sticky bottom-0 z-30 w-full max-w-2xl sm:static">
+      <footer className="fixed inset-x-0 bottom-0 z-30 w-full px-4 pb-4">
         <PracticeControls
           bpm={metronome.bpm}
           onBpmChange={metronome.setBpm}
@@ -163,7 +175,7 @@ export function ScalePage({ family, modeId, variantId }: Props) {
           onStopwatchResume={stopwatch.resume}
           onStopwatchStop={handleStopwatchStop}
         />
-      </div>
+      </footer>
     </div>
   );
 }

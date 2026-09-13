@@ -36,11 +36,12 @@ position, triad selection) is local `useState`.
   an extra note). `getScaleNotes(rootMidi, family, modeId, variantId?)`
   is the single source of truth for interval arithmetic — no other
   module computes scale intervals itself. `SCALE_FAMILIES` currently
-  ships Major, Harmonic Minor, Major Pentatonic, and Minor Pentatonic
-  (with a `blue` variant). To add a new family: add a `ScaleFamily`
-  entry with kebab-case ids (ids double as URL route segments, so no
-  separate slug transform) — no other code changes are required for a
-  diatonic (any degreeCount) family to become selectable and routable.
+  ships Major, Harmonic Minor, Melodic Minor, Major Pentatonic, and
+  Minor Pentatonic (with a `blue` variant). To add a new family: add a
+  `ScaleFamily` entry with kebab-case ids (ids double as URL route
+  segments, so no separate slug transform) — no other code changes are
+  required for a diatonic (any degreeCount) family to become selectable
+  and routable.
 - **Music theory core** (`src/lib/theory.ts`): notes are modeled by MIDI
   number, not just pitch class, so octave/frequency stay available
   without changing the data model later. `buildFretboard(root, family,

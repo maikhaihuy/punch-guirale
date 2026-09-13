@@ -41,8 +41,8 @@ export function PracticeControls({
 }: Props) {
   return (
     <div
-      className="flex w-full items-center justify-between gap-4 rounded-t-xl border-t border-black/10 bg-surface/95 px-4 py-3 backdrop-blur-sm dark:border-white/10"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="flex w-full items-center justify-center gap-8 rounded-xl border border-black/10 bg-surface/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-white/10"
+      style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
       <div className="flex items-center gap-2">
         <Metronome className="size-5 shrink-0 text-text-muted" aria-hidden />

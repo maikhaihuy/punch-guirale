@@ -2,10 +2,11 @@
 
 import { Dice5 } from "lucide-react";
 
+import { ScaleWheel } from "@/components/ScaleWheel";
 import { PillGroup } from "@/components/ui/pill-group";
 import { Switch } from "@/components/ui/switch";
 import type { ScaleFamily } from "@/lib/scales";
-import { CHROMATIC, getDiatonicDegrees, randomRoot, type NoteName } from "@/lib/theory";
+import { getDiatonicDegrees, randomRoot, type NoteName } from "@/lib/theory";
 
 export type DisplayMode = "note" | "degree";
 
@@ -41,12 +42,7 @@ export function ScaleDashboard({
   return (
     <div className="flex w-full flex-col gap-3">
       <section className="flex flex-wrap items-center gap-2">
-        <PillGroup
-          variant="pill"
-          options={CHROMATIC.map((note) => ({ key: note, label: note, value: note }))}
-          isSelected={(note) => note === root}
-          onSelect={onRootChange}
-        />
+        <ScaleWheel root={root} onRootChange={onRootChange} family={family} modeId={modeId} />
         <button
           type="button"
           onClick={() => onRootChange(randomRoot())}

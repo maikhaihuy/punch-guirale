@@ -25,6 +25,12 @@ const DOT_RADIUS = 14;
 const TOUCH_RADIUS = 22;
 const TRIAD_RING_RADIUS = 18;
 const FALLBACK_FRET_WIDTH = 52;
+// Fret cells never shrink below this - once the container is too narrow to
+// fit `displayFretCount` cells at this width, the board overflows its
+// container and the user scrolls/zooms instead of cells getting smaller
+// than a tap target (see fretboard-viewport's minimum fret cell width
+// requirement).
+const MIN_FRET_WIDTH = 36;
 
 // Standard guitar fret-position inlays: single dot at these frets, double
 // dot (the octave markers) at 12 and 24. Purely a wayfinding overlay -
@@ -166,7 +172,7 @@ export function Fretboard({
   const displayFretCount = Math.min(visibleFretCount, maxDisplayFrets);
   const fretWidth =
     containerWidth > 0
-      ? (containerWidth - STRING_LABEL_WIDTH) / displayFretCount
+      ? Math.max(MIN_FRET_WIDTH, (containerWidth - STRING_LABEL_WIDTH) / displayFretCount)
       : FALLBACK_FRET_WIDTH;
   const boardWidth = STRING_LABEL_WIDTH + fretWidth * displayFretCount;
   const boardHeight = TOP_PADDING + BOTTOM_PADDING + STRING_GAP * (numStrings - 1);
@@ -180,7 +186,7 @@ export function Fretboard({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="relative">
-        <div ref={containerRef} className="overflow-hidden bg-surface">
+        <div ref={containerRef} className="overflow-x-auto overflow-y-hidden bg-surface">
           <div style={{ width: boardWidth }}>
             <div
               className="flex border-b border-black/10 bg-surface/95 dark:border-white/10"

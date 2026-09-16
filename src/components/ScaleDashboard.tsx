@@ -1,12 +1,10 @@
 "use client";
 
-import { Dice5 } from "lucide-react";
-
 import { ScaleWheel } from "@/components/ScaleWheel";
 import { PillGroup } from "@/components/ui/pill-group";
 import { Switch } from "@/components/ui/switch";
 import type { ScaleFamily } from "@/lib/scales";
-import { getDiatonicDegrees, randomRoot, type NoteName } from "@/lib/theory";
+import { getDiatonicDegrees, type NoteName } from "@/lib/theory";
 
 export type DisplayMode = "note" | "degree";
 
@@ -43,15 +41,6 @@ export function ScaleDashboard({
     <div className="flex w-full flex-col gap-3">
       <section className="flex flex-wrap items-center gap-2">
         <ScaleWheel root={root} onRootChange={onRootChange} family={family} modeId={modeId} />
-        <button
-          type="button"
-          onClick={() => onRootChange(randomRoot())}
-          className="ml-2 flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-white transition-opacity hover:opacity-90"
-          aria-label="Randomize root note"
-          title="Randomize root note"
-        >
-          <Dice5 className="size-4" aria-hidden />
-        </button>
       </section>
 
       <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">

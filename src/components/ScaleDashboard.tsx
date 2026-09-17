@@ -1,12 +1,14 @@
 "use client";
 
+import { cn } from "cn";
 import { Dice5 } from "lucide-react";
 
+import { ScaleInfoTable } from "@/components/ScaleInfoTable";
 import { ScaleWheel } from "@/components/ScaleWheel";
-import { PillGroup } from "@/components/ui/pill-group";
 import { Switch } from "@/components/ui/switch";
+import { getChordLabel, getChordSuffixesForQuality } from "@/lib/chords";
 import type { ScaleFamily } from "@/lib/scales";
-import { getDiatonicDegrees, randomRoot, type NoteName } from "@/lib/theory";
+import { getDiatonicDegrees, getWholeHalfPattern, randomRoot, type NoteName } from "@/lib/theory";
 
 export type DisplayMode = "note" | "degree";
 
@@ -31,13 +33,17 @@ export function ScaleDashboard({
   selectedTriadDegree,
   onSelectedTriadDegreeChange,
 }: Props) {
-  // getDiatonicDegrees also computes triad quality/roman numeral, which
-  // aren't meaningful for a 5-note family (triads need 7 degrees to
-  // stack thirds) - but this row only reads .index/.noteName, both valid
-  // for any degreeCount, so the row itself isn't gated. The fretboard's
-  // 3-note triad ring stays 7-note-only (see ScalePage); selecting a
-  // degree here always highlights at least that single note.
+  // getDiatonicDegrees also computes triad quality/roman numeral, and
+  // getWholeHalfPattern the W/H step pattern - neither is meaningful for
+  // a 5-note family (triads and diatonic step patterns need 7 degrees),
+  // so the row only renders that richer content when degreeCount === 7,
+  // same gating convention as theory.ts's own callers. For other degree
+  // counts the row falls back to a plain index/note-name pill, since it
+  // doubles as the fretboard's single-note highlight control there (see
+  // ScalePage) even though the 3-note triad ring stays 7-note-only.
+  const isSevenDegree = family.degreeCount === 7;
   const diatonicDegrees = getDiatonicDegrees(root, family, modeId);
+  const wholeHalfPattern = getWholeHalfPattern(family, modeId);
 
   return (
     <div className="flex w-full flex-col gap-3">
@@ -52,23 +58,57 @@ export function ScaleDashboard({
         >
           <Dice5 className="size-4" aria-hidden />
         </button>
+        <ScaleInfoTable root={root} family={family} modeId={modeId} />
       </section>
 
       <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
         <div className="flex flex-col gap-1.5">
           <span className="text-xs text-text-muted">Degrees</span>
-          <PillGroup
-            options={[
-              { key: "none", label: "None", value: null as number | null },
-              ...diatonicDegrees.map((degree) => ({
-                key: String(degree.index),
-                label: `${degree.index + 1} ${degree.noteName}`,
-                value: degree.index as number | null,
-              })),
-            ]}
-            isSelected={(degree) => degree === selectedTriadDegree}
-            onSelect={onSelectedTriadDegreeChange}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onSelectedTriadDegreeChange(null)}
+              className={cn(
+                "shrink-0 rounded-md px-2.5 py-1 text-sm font-medium transition-colors",
+                selectedTriadDegree === null
+                  ? "bg-text text-bg"
+                  : "text-text/70 hover:bg-black/5 dark:hover:bg-white/10",
+              )}
+            >
+              None
+            </button>
+            {diatonicDegrees.map((degree, i) => (
+              <div key={degree.index} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onSelectedTriadDegreeChange(degree.index)}
+                  className={cn(
+                    "flex shrink-0 flex-col items-center gap-0.5 rounded-md px-2.5 py-1 text-sm font-medium leading-tight transition-colors",
+                    degree.index === selectedTriadDegree
+                      ? "bg-text text-bg"
+                      : "text-text/70 hover:bg-black/5 dark:hover:bg-white/10",
+                  )}
+                >
+                  {isSevenDegree ? (
+                    <>
+                      <span>{degree.degreeLabel}</span>
+                      <span className="text-xs opacity-70">{degree.romanNumeral}</span>
+                      <span className="text-[10px] opacity-70">
+                        {getChordSuffixesForQuality(degree.quality).map(getChordLabel).join(" · ")}
+                      </span>
+                    </>
+                  ) : (
+                    <span>{`${degree.index + 1} ${degree.noteName}`}</span>
+                  )}
+                </button>
+                {isSevenDegree && i < diatonicDegrees.length - 1 && (
+                  <span className="text-xs text-text-muted" aria-hidden="true">
+                    {wholeHalfPattern[i]}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
 
         <label className="flex items-center gap-2 text-sm">

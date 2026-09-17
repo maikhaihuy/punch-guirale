@@ -1,31 +1,4 @@
-# scale-dashboard Specification
-
-## Purpose
-
-Surfaces root/key selection, the current scale's degrees paired with
-their notes (doubling as the triad-highlight control), and the
-note/degree display toggle as a compact, page-local dashboard whose
-state changes without navigating, separate from the route-driving
-family/mode navigation.
-
-## Requirements
-
-### Requirement: Key row hosts root note selection
-The system SHALL render a dashboard row for root/key selection, offering
-all 12 chromatic pitch classes plus a control to randomize the root,
-visually distinct from the individual pitch-class controls. Selecting a
-root note or activating randomize SHALL update the fretboard without
-navigating to a new route.
-
-#### Scenario: Selecting a root note
-- **WHEN** the user selects a pitch class in the dashboard's key row
-- **THEN** the fretboard recomputes for the new root, without a route
-  change
-
-#### Scenario: Randomizing the root
-- **WHEN** the user activates the randomize control in the key row
-- **THEN** the root is set to one of the 12 chromatic pitch classes and
-  the fretboard recomputes accordingly
+## MODIFIED Requirements
 
 ### Requirement: Degrees row shows scale degrees with their notes
 The system SHALL render a "Degrees" row with one pill per scale degree
@@ -90,13 +63,3 @@ families.
 - **THEN** a `W` or `H` indicator appears between each pair of
   adjacent degree pills, matching the whole/half-step gap from the
   earlier degree to the later one
-
-### Requirement: Note/Degree toggle
-The system SHALL render a switch that toggles every fretboard label
-between note name and scale degree. Activating it SHALL update the
-fretboard display without changing the route.
-
-#### Scenario: Toggling note/degree from the dashboard
-- **WHEN** the user activates the Note/Degree switch
-- **THEN** every fretboard label switches between note name and scale
-  degree, without a route change

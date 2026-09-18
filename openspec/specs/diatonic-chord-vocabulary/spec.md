@@ -3,9 +3,10 @@
 ## Purpose
 Provides a static, quality-keyed lookup of common chord symbols so
 that any diatonic triad quality (major, minor, diminished, augmented)
-derived elsewhere — e.g. by `diatonic-triad-highlighting` — can be
-displayed with real-world chord symbol suggestions, without coupling
-the lookup to any specific family's or mode's interval pattern.
+derived elsewhere — e.g. by `scale-info-table`'s Chords column — can
+be displayed with real-world chord symbol suggestions, without
+coupling the lookup to any specific family's or mode's interval
+pattern.
 
 ## Requirements
 

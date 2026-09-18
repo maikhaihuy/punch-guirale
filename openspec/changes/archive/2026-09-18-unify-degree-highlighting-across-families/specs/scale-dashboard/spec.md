@@ -1,31 +1,4 @@
-# scale-dashboard Specification
-
-## Purpose
-
-Surfaces root/key selection, the current scale's degrees paired with
-their notes (doubling as the degree-highlight control), and the
-note/degree display toggle as a compact, page-local dashboard whose
-state changes without navigating, separate from the route-driving
-family/mode navigation.
-## Requirements
-### Requirement: Key row hosts root note selection
-The system SHALL render a circular scale wheel for root/key selection,
-with 12 slices arranged around the circle — one per chromatic pitch
-class — all 12 always rendered, plus a control to randomize the root,
-visually distinct from the individual pitch-class controls. Selecting a
-pitch class on the wheel or activating randomize SHALL update the
-fretboard without navigating to a new route.
-
-#### Scenario: Selecting a root note
-- **WHEN** the user selects a pitch class on the dashboard's scale wheel
-- **THEN** the fretboard recomputes for the new root, without a route
-  change
-
-#### Scenario: Randomizing the root
-- **WHEN** the user activates the randomize control next to the scale
-  wheel
-- **THEN** the root is set to one of the 12 chromatic pitch classes and
-  the fretboard recomputes accordingly
+## MODIFIED Requirements
 
 ### Requirement: Degrees row shows scale degrees with their notes
 The system SHALL render a "Degrees" row with one pill per scale degree
@@ -77,44 +50,21 @@ every family.
   earlier degree to the later one; this indicator does not render for
   non-7-degree families
 
-### Requirement: Note/Degree toggle
-The system SHALL render a switch that toggles every fretboard label
-between note name and scale degree. Activating it SHALL update the
-fretboard display without changing the route.
+## REMOVED Requirements
 
-#### Scenario: Toggling note/degree from the dashboard
-- **WHEN** the user activates the Note/Degree switch
-- **THEN** every fretboard label switches between note name and scale
-  degree, without a route change
+### Requirement: Wheel shows degree and triad info for 7-degree families
+**Reason**: Superseded by a family-agnostic requirement — the
+degree-label portion no longer stays 7-degree-only (see ADDED "Wheel
+shows degree info for every family"). The roman-numeral portion is
+carried forward by that same new requirement rather than removed,
+since it's still derived from `getTriadQuality`/`getRomanNumeral` in
+`theory.ts` (kept — `diatonic-triad-highlighting`'s *selection/ring*
+behavior is what's removed, not the quality/roman-numeral computation
+itself).
+**Migration**: See the new "Wheel shows degree info for every family"
+requirement below.
 
-### Requirement: Wheel indicates scale membership by dimming
-The system SHALL visually distinguish, on the scale wheel, which of the
-12 pitch classes are members of the current scale/mode from those that
-are not, using reduced opacity for non-member pitch classes rather than
-hiding them. Non-member pitch classes SHALL remain clickable and SHALL
-set the root the same as member pitch classes. The root pitch class
-SHALL be visually distinguished from other scale-member pitch classes.
-
-#### Scenario: In-scale notes render fully visible
-- **WHEN** the scale wheel is rendered for a given root, family, and mode
-- **THEN** every pitch class that is a member of the resulting scale
-  renders at full visibility
-
-#### Scenario: Out-of-scale notes are dimmed but not hidden
-- **WHEN** the scale wheel is rendered for a given root, family, and mode
-- **THEN** every pitch class that is not a member of the resulting scale
-  renders at reduced opacity and remains present on the wheel
-
-#### Scenario: Selecting a dimmed, out-of-scale note
-- **WHEN** the user selects a pitch class that is currently dimmed
-  (not a member of the current scale)
-- **THEN** that pitch class becomes the new root and the wheel
-  recomputes scale membership around it, without a route change
-
-#### Scenario: Root note is visually distinct
-- **WHEN** the scale wheel is rendered
-- **THEN** the pitch class equal to the current root renders with a
-  distinct visual treatment from every other in-scale pitch class
+## ADDED Requirements
 
 ### Requirement: Wheel shows degree info for every family
 The system SHALL render, next to each in-scale pitch class on the
@@ -137,4 +87,3 @@ NOT render for other degree counts.
 - **THEN** each in-scale pitch class is additionally labeled with its
   diatonic triad roman numeral; for a non-7-degree family (e.g.
   Pentatonic, Blue) no roman numeral renders for any pitch class
-

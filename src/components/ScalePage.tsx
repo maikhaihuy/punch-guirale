@@ -16,7 +16,7 @@ import { useStopwatch } from "@/hooks/useStopwatch";
 import { useWakeLock } from "@/hooks/useWakeLock";
 import { getFamily, type ScaleFamily } from "@/lib/scales";
 import { appendSession, loadSessions, type PracticeSession } from "@/lib/storage";
-import { buildFretboard, getDegreeLabel, getTriadDegreeLabels, type NoteName } from "@/lib/theory";
+import { buildFretboard, getDegreeLabel, type NoteName } from "@/lib/theory";
 
 type Props = {
   family: ScaleFamily;
@@ -29,7 +29,7 @@ export function ScalePage({ family, modeId, variantId }: Props) {
 
   const [root, setRoot] = useState<NoteName>("C");
   const [displayMode, setDisplayMode] = useState<DisplayMode>("note");
-  const [selectedTriadDegree, setSelectedTriadDegree] = useState<number | null>(null);
+  const [selectedDegreeIndex, setSelectedDegreeIndex] = useState<number | null>(null);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
 
   useEffect(() => {
@@ -40,28 +40,20 @@ export function ScalePage({ family, modeId, variantId }: Props) {
   // picked in - switching families (different degreeCount) could leave
   // a stale index out of range for the new family's degree list.
   useEffect(() => {
-    setSelectedTriadDegree(null);
+    setSelectedDegreeIndex(null);
   }, [family.id]);
 
   const fretboard = useMemo(
     () => buildFretboard(root, family, modeId, variantId),
     [root, family, modeId, variantId],
   );
-  // The 3-note triad ring only generalizes to 7-note families (see
-  // design.md "Non-goals") - tertian triads need 7 degrees to stack
-  // thirds. The single-note highlight below has no such requirement, so
-  // it stays available for every family (e.g. Pentatonic).
-  const triadDegreeLabels = useMemo(
-    () =>
-      selectedTriadDegree === null || family.degreeCount !== 7
-        ? null
-        : getTriadDegreeLabels(family, modeId, selectedTriadDegree),
-    [family, modeId, selectedTriadDegree],
-  );
+  // Highlighting is degree-count-agnostic - every note sharing the
+  // selected degree's label lights up, for any family (see
+  // degree-highlighting spec).
   const selectedDegreeLabel = useMemo(
     () =>
-      selectedTriadDegree === null ? null : getDegreeLabel(family, modeId, selectedTriadDegree),
-    [family, modeId, selectedTriadDegree],
+      selectedDegreeIndex === null ? null : getDegreeLabel(family, modeId, selectedDegreeIndex),
+    [family, modeId, selectedDegreeIndex],
   );
 
   const metronome = useMetronome();
@@ -142,8 +134,8 @@ export function ScalePage({ family, modeId, variantId }: Props) {
             modeId={modeId}
             displayMode={displayMode}
             onDisplayModeChange={setDisplayMode}
-            selectedTriadDegree={selectedTriadDegree}
-            onSelectedTriadDegreeChange={setSelectedTriadDegree}
+            selectedDegreeIndex={selectedDegreeIndex}
+            onSelectedDegreeIndexChange={setSelectedDegreeIndex}
           />
         </section>
 
@@ -152,7 +144,6 @@ export function ScalePage({ family, modeId, variantId }: Props) {
             fretboard={fretboard}
             displayMode={displayMode}
             onNotePlay={(note) => void playNote(note.freq)}
-            triadDegreeLabels={triadDegreeLabels}
             selectedDegreeLabel={selectedDegreeLabel}
           />
         </section>

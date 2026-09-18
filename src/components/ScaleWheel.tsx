@@ -46,18 +46,18 @@ function pointAt(radius: number, index: number): { x: number; y: number } {
 
 export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
   const scaleNotes = new Set(getScaleNoteNames(root, family, modeId));
-  // Diatonic triads (and therefore roman numerals) only generalize to
-  // 7-note families - same gate used for the Degrees row and the
-  // fretboard's triad ring (see design.md Decision 5).
-  const showInnerRing = family.degreeCount === 7;
+  // degree.degreeLabel is degree-count-agnostic, so the inner ring renders
+  // for every family, not just 7-degree ones - see degree-highlighting
+  // spec. romanNumeral is still 7-degree-only (tertian triads need 7
+  // degrees to stack thirds), same gate as the Degrees row. The note name
+  // itself isn't repeated here since the outer dot already shows it.
+  const isSevenDegree = family.degreeCount === 7;
   const degreeByNote = new Map<NoteName, { degreeLabel: string; romanNumeral: string }>();
-  if (showInnerRing) {
-    for (const degree of getDiatonicDegrees(root, family, modeId)) {
-      degreeByNote.set(degree.noteName, {
-        degreeLabel: degree.degreeLabel,
-        romanNumeral: degree.romanNumeral,
-      });
-    }
+  for (const degree of getDiatonicDegrees(root, family, modeId)) {
+    degreeByNote.set(degree.noteName, {
+      degreeLabel: degree.degreeLabel,
+      romanNumeral: degree.romanNumeral,
+    });
   }
 
   return (
@@ -102,6 +102,19 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
             {degree &&
               (() => {
                 const inner = pointAt(INNER_RADIUS, index);
+                if (!isSevenDegree) {
+                  return (
+                    <text
+                      x={inner.x}
+                      y={inner.y}
+                      dominantBaseline="middle"
+                      textAnchor="middle"
+                      className="fill-text-muted text-[9px] font-medium tabular-nums"
+                    >
+                      {degree.degreeLabel}
+                    </text>
+                  );
+                }
                 return (
                   <text
                     x={inner.x}

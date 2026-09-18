@@ -17,8 +17,9 @@ Degree column for families whose scale has 7 degrees. The table SHALL
 additionally show a Chords column for families whose scale has 7
 degrees, or for the Minor Pentatonic or Major Pentatonic family's own
 base mode specifically (per the `diatonic-chord-vocabulary`
-capability's respective chord tables). For every other case (any other
-pentatonic mode rotation), the Chords column SHALL NOT render.
+capability's respective chord tables). For every other case — including
+any other pentatonic mode rotation, and both of the Blue family's modes
+(Blues Minor, Blues Major) — the Chords column SHALL NOT render.
 
 #### Scenario: Table renders with all columns for a 7-degree family
 - **WHEN** the active family's scale has 7 degrees (e.g. Major,
@@ -30,8 +31,9 @@ pentatonic mode rotation), the Chords column SHALL NOT render.
 #### Scenario: Table renders with a reduced column set for most non-7-degree families
 - **WHEN** the active family's scale does not have 7 degrees and is
   not Minor or Major Pentatonic's own base mode (e.g. Egyptian, Blues
-  Minor/Major, Suspended, Man Gong, Ritusen, or either family's other
-  mode rotation)
+  Minor/Major of the Major Pentatonic family's own rotations, Suspended,
+  Man Gong, Ritusen, either pentatonic family's other mode rotation, or
+  either of the Blue family's modes)
 - **THEN** the info table still renders beside the scale wheel, with
   one row per scale degree, showing only Formula, Notes, and Intervals
   (no Degree or Chords columns)
@@ -42,6 +44,13 @@ pentatonic mode rotation), the Chords column SHALL NOT render.
   other rotations)
 - **THEN** the info table renders Formula, Notes, Intervals, and
   Chords (still no Degree column)
+
+#### Scenario: The Blue family's modes never show a Chords column
+- **WHEN** the active family is Blue, in either its `blues-minor` mode
+  (6 degrees) or its `blues-major` mode (5 degrees)
+- **THEN** the info table renders only Formula, Notes, and Intervals
+  (no Degree or Chords columns), the same as any other non-7-degree,
+  non-Pentatonic-base-mode family
 
 ### Requirement: Each row shows formula, note, interval name, degree function, and chords
 Every row of the scale info table, for any family, SHALL show: the

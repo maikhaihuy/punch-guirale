@@ -70,10 +70,26 @@ describe("getScaleNotes", () => {
     }
   });
 
-  it("inserts the blue (b5) variant at the correct position for Minor Pentatonic", () => {
-    const minorPentatonic = getFamily("minor-pentatonic")!;
-    const notes = getScaleNotes(ROOT_MIDI, minorPentatonic, "minor-pentatonic", "blue");
-    expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 3, 5, 6, 7, 10]);
+  it("computes the Blue family's Blues Minor and Blues Major modes", () => {
+    const blue = getFamily("blue")!;
+    expect(
+      offsetsFrom(ROOT_MIDI, getScaleNotes(ROOT_MIDI, blue, "blues-minor")),
+    ).toEqual([0, 3, 5, 6, 7, 10]);
+    expect(
+      offsetsFrom(ROOT_MIDI, getScaleNotes(ROOT_MIDI, blue, "blues-major")),
+    ).toEqual([0, 3, 5, 7, 10]);
+  });
+
+  it("uses a mode's own interval-pattern override regardless of rotationIndex", () => {
+    const blue = getFamily("blue")!;
+    const bluesMajorMode = blue.modes.find((m) => m.id === "blues-major")!;
+    expect(bluesMajorMode.intervalPattern).toEqual([0, 3, 5, 7, 10]);
+    // blues-major's rotationIndex is unused/ignored once intervalPattern is set -
+    // rotating the family's 6-note blues-minor pattern at any index would still
+    // produce a 6-note result, never the 5-note override result below.
+    const notes = getScaleNotes(ROOT_MIDI, blue, "blues-major");
+    expect(offsetsFrom(ROOT_MIDI, notes)).toHaveLength(5);
+    expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 3, 5, 7, 10]);
   });
 
   it("leaves the base scale unaffected when no variant is given", () => {
@@ -82,9 +98,15 @@ describe("getScaleNotes", () => {
     expect(offsetsFrom(ROOT_MIDI, withoutVariant)).toEqual([0, 3, 5, 7, 10]);
   });
 
-  it("ignores an unrecognized variant id for the family", () => {
+  it("ignores an unrecognized variant id for a family with no variants", () => {
     const minorPentatonic = getFamily("minor-pentatonic")!;
     const notes = getScaleNotes(ROOT_MIDI, minorPentatonic, "minor-pentatonic", "not-a-real-variant");
+    expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 3, 5, 7, 10]);
+  });
+
+  it("ignores the now-removed blue variant id on Minor Pentatonic", () => {
+    const minorPentatonic = getFamily("minor-pentatonic")!;
+    const notes = getScaleNotes(ROOT_MIDI, minorPentatonic, "minor-pentatonic", "blue");
     expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 3, 5, 7, 10]);
   });
 

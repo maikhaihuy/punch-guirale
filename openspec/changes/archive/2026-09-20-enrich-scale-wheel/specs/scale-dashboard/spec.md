@@ -19,6 +19,8 @@ route.
 - **THEN** the root is set to one of the 12 chromatic pitch classes and
   the fretboard recomputes accordingly
 
+## ADDED Requirements
+
 ### Requirement: Wheel shows chromatic degree labels and chord symbols
 The system SHALL render, next to every one of the wheel's 12 pitch
 classes, that pitch class's chromatic degree label relative to the root
@@ -62,8 +64,6 @@ generalize to a non-7-degree stack.
 - **THEN** each in-scale pitch class on the wheel is labeled with an
   illustrative roman numeral matching its scale position, and no chord
   symbol is shown for any pitch class
-
-## ADDED Requirements
 
 ### Requirement: Wheel shows whole/half-step relationships between in-scale notes
 The system SHALL render, between each pair of consecutive in-scale pitch

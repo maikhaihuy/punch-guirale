@@ -5,12 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { ScaleFamily } from "@/lib/scales";
 import {
   CHROMATIC,
-  getChordSymbol,
   getChromaticDegreeLabel,
-  getDiatonicDegrees,
-  getIllustrativeRomanNumeral,
   getScaleNoteNames,
-  getWholeHalfPattern,
   randomRoot,
   type NoteName,
 } from "@/lib/theory";
@@ -23,33 +19,31 @@ type Props = {
 };
 
 // viewBox is fixed; the wrapping element controls the rendered size
-// responsively, same trick used for any fixed-viewBox SVG. Exactly two
-// rings: the outer ring pairs each note with its chromatic degree label,
-// the inner ring carries the whole/half-step arcs plus (for 7-degree
-// families) the roman-numeral/chord-symbol - matching
-// scale_wheel_concentric_rings.html's two-ring layout.
+// responsively, same trick used for any fixed-viewBox SVG. One ring of 12
+// notes, each paired with its chromatic degree label, with a closed polygon
+// joining the in-scale notes so the scale's shape reads at a glance. Roman
+// numerals, chords, and whole/half-step gaps live in the Degrees row and the
+// scale info table, not here.
 const SIZE = 320;
 const CENTER = SIZE / 2;
-const OUTER_RADIUS = 122; // note + degree label, stacked together
-const INNER_RADIUS = 68; // W/H arcs + roman-numeral/chord-symbol
-const DOT_RADIUS = 17;
-// Keeps adjacent touch circles clear of each other at OUTER_RADIUS (chord
-// between neighboring wedge centers is ~63 viewBox units), while still
-// scaling up to a real tap target at the wheel's minimum rendered width.
-const TOUCH_RADIUS = 27;
-const HUB_RADIUS = 28;
-const HUB_TOUCH_RADIUS = 36;
+const OUTER_RADIUS = 128;
+// Neighboring note centers are 2 * OUTER_RADIUS * sin(15deg) ~= 66 apart, so
+// DOT_RADIUS (dot diameter 52) leaves a small gap and TOUCH_RADIUS stays
+// under half the spacing so adjacent touch circles never overlap.
+const DOT_RADIUS = 26;
+const TOUCH_RADIUS = 31;
+const HUB_RADIUS = 34;
+const HUB_TOUCH_RADIUS = 42;
 
-// Below this rendered pixel width there isn't room to keep the degree
-// label and inner ring (arcs + roman-numeral/chord-symbol) legible -
-// they're hidden entirely (falling back to the note ring + center hub
-// only) rather than shrinking text past legibility (see design.md
-// Decision 7).
-const MIN_RINGS_WIDTH = 200;
+// Below this rendered pixel width there isn't room to keep the degree label
+// legible, so it's hidden (falling back to the note name only) rather than
+// shrinking text past legibility (see design.md Decision 7 of
+// enrich-scale-wheel). The connecting lines aren't text and stay.
+const MIN_DEGREE_LABEL_WIDTH = 200;
 
 // Chromatic order, fixed regardless of root (the wheel never rotates - see
-// design.md Decision 3). Index 0 (C) sits at 12 o'clock; index increases
-// clockwise, 30 degrees per slice.
+// enrich-scale-wheel's design.md Decision 3). Index 0 (C) sits at 12 o'clock;
+// index increases clockwise, 30 degrees per slice.
 function angleForIndex(index: number): number {
   return ((-90 + index * 30) * Math.PI) / 180;
 }
@@ -68,15 +62,14 @@ function pointAt(radius: number, index: number): { x: number; y: number } {
   return { x: round(CENTER + radius * Math.cos(theta)), y: round(CENTER + radius * Math.sin(theta)) };
 }
 
-// Midpoint angle between two wedge indices, taking the short way around
-// (in-scale gaps never exceed a handful of semitones, so this is always
-// the visually-correct arc midpoint, not the long way around the circle).
-function midpointAngle(fromIndex: number, toIndex: number): number {
-  const from = angleForIndex(fromIndex);
-  let to = angleForIndex(toIndex);
-  if (to < from) to += 2 * Math.PI;
-  return (from + to) / 2;
-}
+// The closed scale polygon: one vertex per in-scale note, at the point of
+// that note's circle edge facing the wheel's center, joined to the next
+// vertex by a straight edge (last back to first). A polygon through the dot
+// centers would be hidden under the opaque dots at every vertex and read as
+// loose segments hanging off the circles; with the vertices on the circles'
+// inner edges, the edges meet each other in plain sight and never cross a
+// note's label.
+const VERTEX_RADIUS = OUTER_RADIUS - DOT_RADIUS;
 
 export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -93,108 +86,22 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
   }, []);
 
   // Before the first measurement (renderedWidth === 0), default to showing
-  // the full ring set rather than flashing the degraded state.
-  const showEnrichmentRings = renderedWidth === 0 || renderedWidth >= MIN_RINGS_WIDTH;
+  // the degree labels rather than flashing the degraded state.
+  const showDegreeLabels = renderedWidth === 0 || renderedWidth >= MIN_DEGREE_LABEL_WIDTH;
 
   const rootIdx = CHROMATIC.indexOf(root);
-  const scaleNotes = new Set(getScaleNoteNames(root, family, modeId));
-  // Diatonic triads (and therefore true roman-numeral/chord-symbol
-  // quality) only generalize to 7-note families - same gate used for the
-  // Degrees row and the fretboard's triad ring (see design.md Decision 2).
-  // Non-7-degree families still get an inner-ring label, just an
-  // illustrative scale-position roman numeral instead (no chord letter,
-  // no quality) - see getIllustrativeRomanNumeral's doc comment.
-  const hasRealTriads = family.degreeCount === 7;
-
-  // Ascending scale-degree order for any degreeCount - valid here since we
-  // only read .noteName/.romanNumeral/.quality/.degreeLabel per degree,
-  // same reasoning ScaleDashboard's Degrees row already relies on for
-  // non-7-note families.
-  const degrees = getDiatonicDegrees(root, family, modeId);
-  const gaps = getWholeHalfPattern(family, modeId);
-
-  const innerInfoByNote = new Map<NoteName, { primary: string; secondary?: string }>();
-  for (const degree of degrees) {
-    innerInfoByNote.set(
-      degree.noteName,
-      hasRealTriads
-        ? { primary: degree.romanNumeral, secondary: getChordSymbol(degree.noteName, degree.quality) }
-        : { primary: getIllustrativeRomanNumeral(degree.degreeLabel) },
-    );
-  }
-
-  const arcs = degrees.map((degree, i) => {
-    const next = degrees[(i + 1) % degrees.length];
-    const fromIndex = CHROMATIC.indexOf(degree.noteName);
-    const toIndex = CHROMATIC.indexOf(next.noteName);
-    return { fromIndex, toIndex, gapSemitones: ((toIndex - fromIndex) % 12 + 12) % 12, label: gaps[i] };
-  });
+  // In ascending scale order starting at the root, so consecutive entries are
+  // adjacent scale degrees and the polygon below closes last -> first.
+  const scaleNoteNames = getScaleNoteNames(root, family, modeId);
+  const scaleNotes = new Set(scaleNoteNames);
+  const scalePolygonPoints = scaleNoteNames
+    .map((note) => pointAt(VERTEX_RADIUS, CHROMATIC.indexOf(note)))
+    .map(({ x, y }) => `${x},${y}`)
+    .join(" ");
 
   return (
     <div ref={wrapperRef} className="h-auto w-full max-w-96 min-w-40 shrink-0">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label="Scale wheel" className="h-auto w-full">
-        {showEnrichmentRings &&
-          arcs.map((arc, i) => {
-            const from = pointAt(INNER_RADIUS, arc.fromIndex);
-            const to = pointAt(INNER_RADIUS, arc.toIndex);
-            const midAngle = midpointAngle(arc.fromIndex, arc.toIndex);
-            const mid = {
-              x: round(CENTER + INNER_RADIUS * Math.cos(midAngle)),
-              y: round(CENTER + INNER_RADIUS * Math.sin(midAngle)),
-            };
-            const largeArc = arc.gapSemitones > 6 ? 1 : 0;
-            return (
-              <g key={`arc-${i}`}>
-                <path
-                  d={`M ${from.x} ${from.y} A ${INNER_RADIUS} ${INNER_RADIUS} 0 ${largeArc} 1 ${to.x} ${to.y}`}
-                  className="fill-none stroke-accent/50"
-                  strokeWidth={1.5}
-                />
-                <text
-                  x={mid.x}
-                  y={mid.y}
-                  dominantBaseline="middle"
-                  textAnchor="middle"
-                  className="fill-text-muted text-[9px] font-semibold tabular-nums"
-                >
-                  {arc.label}
-                </text>
-              </g>
-            );
-          })}
-
-        {showEnrichmentRings &&
-          CHROMATIC.map((note, index) => {
-            const inner = innerInfoByNote.get(note);
-            if (!inner) return null;
-            const innerPoint = pointAt(INNER_RADIUS, index);
-            return (
-              <g key={`inner-${note}`}>
-                <circle cx={innerPoint.x} cy={innerPoint.y} r={14} className="fill-bg stroke-text/10" />
-                <text
-                  x={innerPoint.x}
-                  y={innerPoint.y}
-                  dominantBaseline="middle"
-                  textAnchor="middle"
-                  className="fill-text-muted text-[9px] font-medium"
-                >
-                  {inner.secondary ? (
-                    <>
-                      <tspan x={innerPoint.x} dy="-0.55em">
-                        {inner.primary}
-                      </tspan>
-                      <tspan x={innerPoint.x} dy="1.1em">
-                        {inner.secondary}
-                      </tspan>
-                    </>
-                  ) : (
-                    inner.primary
-                  )}
-                </text>
-              </g>
-            );
-          })}
-
         {CHROMATIC.map((note, index) => {
           const inScale = scaleNotes.has(note);
           const isRoot = note === root;
@@ -202,9 +109,9 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
           const degreeLabel = getChromaticDegreeLabel(index - rootIdx).join("/");
 
           // Same filled-root / outlined-others convention as Fretboard's
-          // note dots (see design.md Decision 2/3).
+          // note dots (see enrich-scale-wheel's design.md Decision 2/3).
           const dotClassName = isRoot ? "fill-text stroke-text" : "fill-surface stroke-text/70";
-          const noteClassName = [isRoot ? "fill-bg" : "fill-text", "text-[11px] font-semibold font-display"].join(
+          const noteClassName = [isRoot ? "fill-bg" : "fill-text", "text-[15px] font-semibold font-display"].join(
             " ",
           );
 
@@ -216,17 +123,17 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
             >
               <circle cx={x} cy={y} r={TOUCH_RADIUS} fill="transparent" />
               <circle cx={x} cy={y} r={DOT_RADIUS} className={dotClassName} strokeWidth={2} />
-              {showEnrichmentRings ? (
+              {showDegreeLabels ? (
                 <text x={x} y={y} dominantBaseline="middle" textAnchor="middle">
                   <tspan x={x} dy="-0.3em" className={noteClassName}>
                     {note}
                   </tspan>
                   <tspan
                     x={x}
-                    dy="1.05em"
+                    dy="1.15em"
                     className={[
                       isRoot ? "fill-bg" : "fill-text-muted",
-                      "text-[8px] font-medium tabular-nums",
+                      "text-[10px] font-medium tabular-nums",
                     ].join(" ")}
                   >
                     {degreeLabel}
@@ -241,6 +148,15 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
           );
         })}
 
+        {/* Vertices sit on the dots' inner edges, so this never covers a
+            label; it never intercepts a tap meant for a note or the hub. */}
+        <polygon
+          points={scalePolygonPoints}
+          className="pointer-events-none fill-none stroke-accent/80"
+          strokeWidth={2.5}
+          strokeLinejoin="round"
+        />
+
         <g
           onPointerDown={() => onRootChange(randomRoot())}
           className="cursor-pointer"
@@ -249,7 +165,7 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
         >
           <circle cx={CENTER} cy={CENTER} r={HUB_TOUCH_RADIUS} fill="transparent" />
           <circle cx={CENTER} cy={CENTER} r={HUB_RADIUS} className="fill-accent" />
-          <text x={CENTER} y={CENTER} dominantBaseline="middle" textAnchor="middle" className="text-[16px]">
+          <text x={CENTER} y={CENTER} dominantBaseline="middle" textAnchor="middle" className="text-[20px]">
             🎲
           </text>
         </g>

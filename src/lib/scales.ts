@@ -32,7 +32,7 @@ const MELODIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 9, 11];
 const MAJOR_PENTATONIC_INTERVALS = [0, 2, 4, 7, 9];
 const MINOR_PENTATONIC_INTERVALS = [0, 3, 5, 7, 10];
 const BLUE_MINOR_INTERVALS = [0, 3, 5, 6, 7, 10]; // 1 b3 4 b5 5 b7
-const BLUE_MAJOR_INTERVALS = [0, 3, 5, 7, 10]; // 1 b3 4 5 b7
+const BLUE_MAJOR_INTERVALS = [0, 2, 3, 4, 7, 9]; // 1 2 b3 3 5 6
 
 export const SCALE_FAMILIES: ScaleFamily[] = [
   {
@@ -88,8 +88,11 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
     modes: [
       { id: "major-pentatonic", displayName: "Major Pentatonic", rotationIndex: 0 },
       { id: "egyptian", displayName: "Egyptian", rotationIndex: 1 },
-      { id: "blues-minor", displayName: "Blues Minor", rotationIndex: 2 },
-      { id: "blues-major", displayName: "Blues Major", rotationIndex: 3 },
+      // Ids keep their old "blues-*" names so existing URLs still resolve;
+      // these are the same patterns the Minor Pentatonic family lists as
+      // Man Gong / Ritusen, not the real Blue family's scales.
+      { id: "blues-minor", displayName: "Man Gong", rotationIndex: 2 },
+      { id: "blues-major", displayName: "Ritusen", rotationIndex: 3 },
       { id: "minor-pentatonic-mode", displayName: "Minor Pentatonic (mode 5)", rotationIndex: 4 },
     ],
   },

@@ -1,12 +1,10 @@
-import {
-  getChordSuffixesForQuality,
-  getConcreteChordName,
-  MAJOR_PENTATONIC_CHORD_SUFFIXES,
-  MINOR_PENTATONIC_CHORD_SUFFIXES,
-} from "@/lib/chords";
-import { getScaleNotes, type ScaleFamily } from "@/lib/scales";
-import { getDegreeFunctionName, getIntervalName } from "@/lib/scaleTerms";
-import { getDiatonicDegrees, type NoteName } from "@/lib/theory";
+import type { ReactNode } from "react";
+
+import type { ScaleFamily } from "@/lib/scales";
+import { getHintLabel, INFO_TABLE_LABELS } from "@/lib/scaleReferenceLabels";
+import { getScaleRows } from "@/lib/scaleRows";
+import type { NoteName } from "@/lib/theory";
+import { cn } from "cn";
 
 type Props = {
   root: NoteName;
@@ -14,36 +12,27 @@ type Props = {
   modeId: string;
 };
 
+function Badge({ tone, children }: { tone: "skip" | "blue"; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        "ml-1.5 rounded-full px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-text",
+        tone === "skip" ? "border border-text/40" : "bg-accent/25",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function ScaleInfoTable({ root, family, modeId }: Props) {
-  // Formula/Notes/Intervals are valid for any degreeCount (same as the
-  // Degrees row already relies on getDiatonicDegrees for any family).
-  // Degree function names (Tonic, Supertonic...) assume a 7-degree scale,
-  // so that column stays 7-degree-only. Chords also assume a 7-degree
-  // scale when derived from triad quality - except Minor/Major
-  // Pentatonic's own base modes, which each have their own fixed,
-  // position-indexed chord table (see design.md "Minor and Major
-  // Pentatonic's base modes each get a fixed... Chords table").
-  const isSevenDegree = family.degreeCount === 7;
-  const pentatonicChordSuffixes =
-    family.id === "minor-pentatonic" && modeId === "minor-pentatonic"
-      ? MINOR_PENTATONIC_CHORD_SUFFIXES
-      : family.id === "major-pentatonic" && modeId === "major-pentatonic"
-        ? MAJOR_PENTATONIC_CHORD_SUFFIXES
-        : null;
-  const showChordsColumn = isSevenDegree || pentatonicChordSuffixes !== null;
+  const { rows, showDetail } = getScaleRows(root, family, modeId);
   const headers = [
     "Formula",
     "Notes",
     "Intervals",
-    ...(isSevenDegree ? ["Degree"] : []),
-    ...(showChordsColumn ? ["Chords"] : []),
+    ...(showDetail ? [INFO_TABLE_LABELS.roman, "Degree", "Chords"] : []),
   ];
-
-  const diatonicDegrees = getDiatonicDegrees(root, family, modeId);
-  // rootMidi 0 anchor mirrors theory.ts's own convention: getScaleNotes'
-  // output then equals each degree's own semitone offset from root, in
-  // the same order as getDiatonicDegrees.
-  const semitoneOffsets = getScaleNotes(0, family, modeId);
 
   return (
     <div className="w-full overflow-x-auto">
@@ -58,27 +47,53 @@ export function ScaleInfoTable({ root, family, modeId }: Props) {
           </tr>
         </thead>
         <tbody>
-          {diatonicDegrees.map((degree, i) => (
-            <tr key={degree.index} className="border-t border-black/5 dark:border-white/10">
-              <td className="px-2 py-1 whitespace-nowrap">{degree.degreeLabel}</td>
-              <td className="px-2 py-1 whitespace-nowrap">{degree.noteName}</td>
-              <td className="px-2 py-1 whitespace-nowrap">{getIntervalName(semitoneOffsets[i])}</td>
-              {isSevenDegree && (
+          {rows.map((row) => {
+            // A skipped slot's text is struck through and dimmed, but the
+            // strike/dim is not the only signal: the Skip badge (outside the
+            // struck span) says it in words. Chords are never struck: they're
+            // the point of showing the slot. Opacity is kept at 70% so text
+            // stays above 4.5:1 against both themes (text-muted would fall to
+            // ~3:1, so skipped chords use text-text).
+            const struck = row.skipped ? "line-through opacity-70" : "";
+            return (
+              <tr key={row.offset} className="border-t border-black/5 dark:border-white/10">
                 <td className="px-2 py-1 whitespace-nowrap">
-                  {getDegreeFunctionName(degree.index, semitoneOffsets[i])}
+                  <span className={struck}>{row.degreeLabel}</span>
                 </td>
-              )}
-              {showChordsColumn && (
-                <td className="px-2 py-1 whitespace-nowrap text-text-muted">
-                  {isSevenDegree
-                    ? getChordSuffixesForQuality(degree.quality)
-                        .map((suffix) => getConcreteChordName(degree.noteName, suffix))
-                        .join(", ")
-                    : getConcreteChordName(degree.noteName, pentatonicChordSuffixes![degree.index])}
+                <td className="px-2 py-1 whitespace-nowrap">
+                  <span className={struck}>{row.noteName}</span>
+                  {row.skipped && <Badge tone="skip">{INFO_TABLE_LABELS.skip}</Badge>}
                 </td>
-              )}
-            </tr>
-          ))}
+                <td className="px-2 py-1 whitespace-nowrap">
+                  <span className={struck}>{row.intervalName}</span>
+                </td>
+                {showDetail && (
+                  <>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      <span className={struck}>{row.roman ?? INFO_TABLE_LABELS.notApplicable}</span>
+                    </td>
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      <span className={struck}>{row.name}</span>
+                      {row.blueNote && <Badge tone="blue">{INFO_TABLE_LABELS.blueNote}</Badge>}
+                    </td>
+                    <td
+                      className={cn(
+                        "px-2 py-1 whitespace-nowrap",
+                        row.skipped ? "text-text opacity-70" : "text-text-muted",
+                      )}
+                    >
+                      {row.chords.join(", ")}
+                      {row.hint && (
+                        <span className={cn("italic", row.chords.length > 0 && "ml-2")}>
+                          {getHintLabel(row.hint, row.noteName)}
+                        </span>
+                      )}
+                    </td>
+                  </>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

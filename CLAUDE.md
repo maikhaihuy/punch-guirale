@@ -12,8 +12,9 @@ Package manager is pnpm (`packageManager: pnpm@10.12.1` in package.json).
 - `pnpm build` — production build
 - `pnpm start` — run the production build
 - `pnpm lint` — ESLint (flat config, `eslint-config-next` core-web-vitals + typescript)
-
-There is no test suite configured in this repo.
+- `pnpm test` — Vitest (`vitest run`); tests sit next to the code
+  (`src/lib/*.test.ts`, `src/components/*.test.tsx`), `@/` is aliased in
+  `vitest.config.ts`. Component tests use `renderToStaticMarkup`, no DOM.
 
 ## Architecture
 
@@ -36,8 +37,11 @@ position, triad selection) is local `useState`.
   an extra note). `getScaleNotes(rootMidi, family, modeId, variantId?)`
   is the single source of truth for interval arithmetic — no other
   module computes scale intervals itself. `SCALE_FAMILIES` currently
-  ships Major, Harmonic Minor, Melodic Minor, Major Pentatonic, and
-  Minor Pentatonic (with a `blue` variant). To add a new family: add a
+  ships Major, Harmonic Minor, Melodic Minor, Major Pentatonic, Minor
+  Pentatonic, and Blue (its own family: `blues-minor` `1 b3 4 b5 5 b7`
+  and `blues-major` `1 2 b3 3 5 6`, the latter via a mode-level
+  `intervalPattern` override). The variant mechanism is generic but no
+  family ships a variant. To add a new family: add a
   `ScaleFamily` entry with kebab-case ids (ids double as URL route
   segments, so no separate slug transform) — no other code changes are
   required for a diatonic (any degreeCount) family to become selectable
@@ -57,6 +61,24 @@ position, triad selection) is local `useState`.
   (Harmonic Minor's interval spacing differs); diatonic triad
   highlighting generalizes to any `degreeCount === 7` family but not to
   Pentatonic — gate on `family.degreeCount === 7`.
+- **Scale reference data** (`src/lib/scaleReference.ts`): hand-authored
+  per-slot roman numeral, degree name, and chords for seven interval
+  patterns (the pentatonic scale's five rotations — Major/Minor
+  Pentatonic, Egyptian, Man Gong, Ritusen — plus Major/Minor Blues),
+  matched by the mode's resolved interval pattern, not by family/mode id
+  (ids repeat across families, and the Major and Minor Pentatonic
+  families share the same five patterns). Every entry
+  also lists the diatonic slots it skips (some with no roman numeral or
+  chords, shown as `N/A`). "Skipped" is derived from the
+  mode's intervals, never stored. Chords are root-relative (a row's chords may be rooted off its
+  own note, e.g. `C/E`) and transposed at render time.
+  `getScaleRows()` (`scaleRows.ts`) is the single source of table rows:
+  it returns the reference rows when the pattern has them, derives rows
+  for 7-degree families (triad-quality math only holds for 7 degrees),
+  and otherwise falls back to Formula/Notes/Intervals only.
+  `ScaleInfoTable.tsx` just renders those rows; new UI strings for it
+  live in `scaleReferenceLabels.ts`. The Scale Wheel has no roman numerals,
+  chords, or W/H labels — those live in the Degrees row and this table.
 - **Client-only persistence** (`src/lib/storage.ts`): practice sessions
   are read/written via `localStorage`, guarded by `typeof window`. Any
   state seeded from `loadSessions()` must be initialized empty and

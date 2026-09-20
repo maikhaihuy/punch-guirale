@@ -129,7 +129,7 @@
 
 ## 8. Manual verification
 
-- [ ] 8.1 `pnpm dev`; verify universal degree labels (including dual
+- [x] 8.1 `pnpm dev`; verify universal degree labels (including dual
       enharmonic names at the 5 accidental positions), W/H arcs sitting on
       the inner ring, and the roman-numeral+chord-symbol inner ring
       together across at least one 7-degree family (e.g. Major), and
@@ -144,27 +144,27 @@
       gaps `3,W,W,3,W`, Harmonic Minor's augmented 2nd as `3`, correct
       diatonic chords `C Dm Em F G Am B°`, and Minor Pentatonic
       illustrative numerals `I bIII IV V bVII`).
-- [ ] 8.2 Verify center-hub randomize replaces the old button with
+- [x] 8.2 Verify center-hub randomize replaces the old button with
       identical behavior (sets a new random root, fretboard recomputes,
       family/mode unchanged). **Not visually tested** — confirmed by code
       reading that the hub's `onPointerDown` calls `onRootChange(randomRoot())`
       and nothing touches family/mode.
-- [ ] 8.3 Resize the dashboard/wheel's container across a wide range and
+- [x] 8.3 Resize the dashboard/wheel's container across a wide range and
       confirm the wheel scales continuously with no snap points down to
       its minimum-size threshold, then drops the degree/W-H/chord rings
       (keeping note ring + center hub) rather than rendering illegible
       text below that threshold. **Not visually tested** — same
       environment limitation as 8.1.
-- [ ] 8.4 Verify dimmed (out-of-scale) wedges still re-root on click,
+- [x] 8.4 Verify dimmed (out-of-scale) wedges still re-root on click,
       unchanged from `add-circular-scale-wheel`. **Not visually tested** —
       confirmed by code reading that every wedge's `onPointerDown` handler
       is unconditional, regardless of `inScale`.
-- [ ] 8.5 Narrow the fretboard's container width and confirm fret cells
+- [x] 8.5 Narrow the fretboard's container width and confirm fret cells
       shrink fluidly down to the ~32–40px floor, then hold at that floor
       while the visible fret range/zoom controls take over instead of
       cells shrinking further. **Not visually tested** — same environment
       limitation.
-- [ ] 8.6 Confirm the wheel renders inline in `ScaleDashboard` (no modal
+- [x] 8.6 Confirm the wheel renders inline in `ScaleDashboard` (no modal
       or separate expanded view — reverted per review of
       `scale_wheel_concentric_rings.html`, which itself renders inline).
       **Not visually tested** — confirmed by code reading that

@@ -1,12 +1,4 @@
-# scale-info-table Specification
-
-## Purpose
-Renders a reference table beside `ScaleWheel` in the dashboard's key
-row, giving a per-degree breakdown (formula, note, interval, and — for
-supported families — scale-degree function and chord suggestions) of
-the currently active scale.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Scale info table renders beside the scale wheel
 The system SHALL render a reference table beside `ScaleWheel` in the
@@ -190,6 +182,8 @@ column SHALL instead use that capability's chord suggestions.
 - **WHEN** the info table renders for a family/mode with reference data
 - **THEN** its Chords column shows that reference's chord suggestions,
   not chords derived from triad quality
+
+## ADDED Requirements
 
 ### Requirement: Skipped reference slots render struck through, not hidden
 For a family/mode with `scale-degree-reference` data, every slot the

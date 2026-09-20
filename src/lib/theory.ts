@@ -110,38 +110,6 @@ export function getRomanNumeral(intervals: number[], degreeIndex: number): strin
   }
 }
 
-// Chord symbol for a triad rooted at noteName with the given quality (e.g.
-// ("D", "minor") -> "Dm"). A pure string-formatting counterpart to
-// getRomanNumeral, parallel rather than a replacement for it - the wheel
-// renders both together (see design.md Decision 2/4).
-export function getChordSymbol(noteName: NoteName, quality: TriadQuality): string {
-  switch (quality) {
-    case "major":
-      return noteName;
-    case "minor":
-      return `${noteName}m`;
-    case "diminished":
-      return `${noteName}°`;
-    case "augmented":
-      return `${noteName}+`;
-  }
-}
-
-// A roman numeral labeling a degree by its chromatic scale position (e.g.
-// "b3" -> "bIII"), not by any derived triad quality - unlike
-// getRomanNumeral, this carries no case distinction and no chord letter,
-// since real triad quality doesn't generalize to non-7-degree families
-// (getTriadQuality's every-other-degree stacking assumes 7 degrees per
-// octave; over a 5-note pentatonic it lands on non-third intervals and
-// reports "augmented" almost everywhere). This is purely illustrative
-// scale-position labeling for families where real chord math doesn't
-// apply - see design.md's Non-Goals on Pentatonic chord symbols.
-export function getIllustrativeRomanNumeral(degreeLabel: string): string {
-  const flat = degreeLabel.startsWith("b");
-  const position = Number(flat ? degreeLabel.slice(1) : degreeLabel);
-  return (flat ? "b" : "") + ROMAN_NUMERALS[position - 1];
-}
-
 // Ordered note names for the active scale, e.g. ["C","D","E","F","G","A","B"]
 // for C Ionian. Degree-count-agnostic (works for Pentatonic too), same as
 // getDiatonicDegrees' degreeLabel/noteName fields - only its quality/

@@ -7,23 +7,36 @@ import {
   CHROMATIC,
   getChromaticDegreeLabel,
   getScaleNoteNames,
-  randomRoot,
   type NoteName,
 } from "@/lib/theory";
+
+// What the wheel needs to show while the scale plays: the sounding note, the
+// one it is heading to (null on the last note), and the step index/duration
+// that key and time the edge sweep.
+export type WheelPlayback = {
+  activeNote: NoteName;
+  nextNote: NoteName | null;
+  stepIndex: number;
+  stepDurationSec: number;
+};
 
 type Props = {
   root: NoteName;
   onRootChange: (root: NoteName) => void;
   family: ScaleFamily;
   modeId: string;
+  isPlaying: boolean;
+  playback: WheelPlayback | null;
+  onTogglePlayback: () => void;
 };
 
 // viewBox is fixed; the wrapping element controls the rendered size
 // responsively, same trick used for any fixed-viewBox SVG. One ring of 12
 // notes, each paired with its chromatic degree label, with a closed polygon
-// joining the in-scale notes so the scale's shape reads at a glance. Roman
-// numerals, chords, and whole/half-step gaps live in the Degrees row and the
-// scale info table, not here.
+// joining the in-scale notes so the scale's shape reads at a glance. The hub
+// is the play/stop control for scale playback. Roman numerals, chords, and
+// whole/half-step gaps live in the Degrees row and the scale info table, not
+// here.
 const SIZE = 320;
 const CENTER = SIZE / 2;
 const OUTER_RADIUS = 128;
@@ -71,7 +84,15 @@ function pointAt(radius: number, index: number): { x: number; y: number } {
 // note's label.
 const VERTEX_RADIUS = OUTER_RADIUS - DOT_RADIUS;
 
-export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
+export function ScaleWheel({
+  root,
+  onRootChange,
+  family,
+  modeId,
+  isPlaying,
+  playback,
+  onTogglePlayback,
+}: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [renderedWidth, setRenderedWidth] = useState(0);
 
@@ -99,12 +120,22 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
     .map(({ x, y }) => `${x},${y}`)
     .join(" ");
 
+  // The sweep rides the polygon edge between two consecutive scale notes, so
+  // it uses the same vertex points as the polygon above.
+  const sweep = (() => {
+    if (!playback || playback.nextNote === null) return null;
+    const from = pointAt(VERTEX_RADIUS, CHROMATIC.indexOf(playback.activeNote));
+    const to = pointAt(VERTEX_RADIUS, CHROMATIC.indexOf(playback.nextNote));
+    return { d: `M${from.x} ${from.y} L${to.x} ${to.y}`, ...playback };
+  })();
+
   return (
     <div ref={wrapperRef} className="mx-auto h-auto w-full max-w-96 min-w-40">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label="Scale wheel" className="h-auto w-full">
         {CHROMATIC.map((note, index) => {
           const inScale = scaleNotes.has(note);
           const isRoot = note === root;
+          const isSounding = playback?.activeNote === note;
           const { x, y } = pointAt(OUTER_RADIUS, index);
           const degreeLabel = getChromaticDegreeLabel(index - rootIdx).join("/");
 
@@ -123,6 +154,9 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
             >
               <circle cx={x} cy={y} r={TOUCH_RADIUS} fill="transparent" />
               <circle cx={x} cy={y} r={DOT_RADIUS} className={dotClassName} strokeWidth={2} />
+              {isSounding && (
+                <circle cx={x} cy={y} r={DOT_RADIUS + 4} className="wheel-note--playing" />
+              )}
               {showDegreeLabels ? (
                 <text x={x} y={y} dominantBaseline="middle" textAnchor="middle">
                   <tspan x={x} dy="-0.3em" className={noteClassName}>
@@ -157,17 +191,51 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
           strokeLinejoin="round"
         />
 
+        {sweep && (
+          <path
+            key={sweep.stepIndex}
+            d={sweep.d}
+            pathLength={1}
+            className="wheel-edge-sweep"
+            style={{ animationDuration: `${sweep.stepDurationSec}s` }}
+          />
+        )}
+
+        {/* onClick, not onPointerDown like the notes: this starts the audio
+            context, which browsers only allow from a user-activation event
+            (a touch pointerdown isn't one). */}
         <g
-          onPointerDown={() => onRootChange(randomRoot())}
-          className="cursor-pointer"
+          onClick={onTogglePlayback}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onTogglePlayback();
+            }
+          }}
+          className="group cursor-pointer outline-none"
           role="button"
-          aria-label="Randomize root note"
+          tabIndex={0}
+          aria-label={isPlaying ? "Stop scale" : "Play scale"}
         >
           <circle cx={CENTER} cy={CENTER} r={HUB_TOUCH_RADIUS} fill="transparent" />
           <circle cx={CENTER} cy={CENTER} r={HUB_RADIUS} className="fill-accent" />
-          <text x={CENTER} y={CENTER} dominantBaseline="middle" textAnchor="middle" className="text-[20px]">
-            🎲
-          </text>
+          <circle
+            cx={CENTER}
+            cy={CENTER}
+            r={HUB_RADIUS + 4}
+            className="pointer-events-none fill-none stroke-text opacity-0 group-focus-visible:opacity-100"
+            strokeWidth={2}
+          />
+          {isPlaying ? (
+            <rect x={CENTER - 10} y={CENTER - 10} width={20} height={20} rx={3} className="fill-bg" />
+          ) : (
+            <polygon
+              points={`${CENTER - 6},${CENTER - 12} ${CENTER - 6},${CENTER + 12} ${CENTER + 14},${CENTER}`}
+              strokeLinejoin="round"
+              className="fill-bg stroke-bg"
+              strokeWidth={2}
+            />
+          )}
         </g>
       </svg>
     </div>

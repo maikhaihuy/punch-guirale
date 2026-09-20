@@ -1,7 +1,7 @@
 "use client";
 
 import { ScaleInfoTable } from "@/components/ScaleInfoTable";
-import { ScaleWheel } from "@/components/ScaleWheel";
+import { ScaleWheel, type WheelPlayback } from "@/components/ScaleWheel";
 import { Switch } from "@/components/ui/switch";
 import type { ScaleFamily } from "@/lib/scales";
 import { getDiatonicDegrees, getWholeHalfPattern, type NoteName } from "@/lib/theory";
@@ -18,6 +18,9 @@ type Props = {
   onDisplayModeChange: (mode: DisplayMode) => void;
   selectedDegreeIndex: number | null;
   onSelectedDegreeIndexChange: (degree: number | null) => void;
+  isPlaying: boolean;
+  playback: WheelPlayback | null;
+  onTogglePlayback: () => void;
 };
 
 export function ScaleDashboard({
@@ -29,6 +32,9 @@ export function ScaleDashboard({
   onDisplayModeChange,
   selectedDegreeIndex,
   onSelectedDegreeIndexChange,
+  isPlaying,
+  playback,
+  onTogglePlayback,
 }: Props) {
   // Formula label, note name, and the step indicator between pills are
   // degree-count-agnostic and render for every family (a gap other than a
@@ -47,7 +53,15 @@ export function ScaleDashboard({
           its column instead of widening the page. */}
       <section className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start">
         <div className="min-w-0">
-          <ScaleWheel root={root} onRootChange={onRootChange} family={family} modeId={modeId} />
+          <ScaleWheel
+            root={root}
+            onRootChange={onRootChange}
+            family={family}
+            modeId={modeId}
+            isPlaying={isPlaying}
+            playback={playback}
+            onTogglePlayback={onTogglePlayback}
+          />
         </div>
         <div className="min-w-0">
           <ScaleInfoTable root={root} family={family} modeId={modeId} />

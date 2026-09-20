@@ -18,6 +18,9 @@ function renderSections() {
       onDisplayModeChange={() => {}}
       selectedDegreeIndex={null}
       onSelectedDegreeIndexChange={() => {}}
+      isPlaying={false}
+      playback={null}
+      onTogglePlayback={() => {}}
     />,
   );
   const sections = [...html.matchAll(/<section[^>]*>[\s\S]*?<\/section>/g)].map((m) => m[0]);

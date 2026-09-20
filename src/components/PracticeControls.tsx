@@ -41,7 +41,7 @@ export function PracticeControls({
 }: Props) {
   return (
     <div
-      className="flex w-full items-center justify-center gap-8 rounded-xl border border-black/10 bg-surface/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-white/10"
+      className="flex w-full flex-wrap items-center justify-center gap-x-6 gap-y-2 rounded-xl border border-black/10 bg-surface/95 px-4 py-3 shadow-lg backdrop-blur-sm dark:border-white/10"
       style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
     >
       <div className="flex items-center gap-2">

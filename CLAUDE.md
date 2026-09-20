@@ -83,6 +83,9 @@ position, triad selection) is local `useState`.
   `ScaleInfoTable.tsx` just renders those rows; new UI strings for it
   live in `scaleReferenceLabels.ts`. The Scale Wheel has no roman numerals,
   chords, or W/H labels — those live in the Degrees row and this table.
+  The wheel's center hub is the scale play/stop button (not randomize —
+  randomize-root lives in the bottom bar's `RootRandomizer`, next to a
+  key + family/mode readout).
 - **Client-only persistence** (`src/lib/storage.ts`): practice sessions
   are read/written via `localStorage`, guarded by `typeof window`. Any
   state seeded from `loadSessions()` must be initialized empty and
@@ -96,6 +99,20 @@ position, triad selection) is local `useState`.
   throttled in background tabs. `Tone` is dynamically imported and
   `Tone.start()` is only ever called from inside the user's click
   handler (`start()`), per browser autoplay policy — never on mount.
+- **Scale playback** (`src/hooks/useScalePlayer.ts`, sequence from
+  `src/lib/scalePlayback.ts`): plays root → octave → root, one note per beat
+  at the metronome BPM read at start. It deliberately does **not** use
+  `Tone.Transport` (`useMetronome.stop()` calls `transport.stop()`, which
+  would kill it) or `useNotePlayer`'s synth (a monophonic Tone source throws
+  if a start time is earlier than one already scheduled, which a fretboard
+  tap mid-playback would be) — each run gets its own synth, scheduled on the
+  audio clock, with UI state driven by `Tone.getDraw()`. `Draw` drops
+  callbacks >0.25s late (hidden tab), so the end-of-run reset also has a
+  `setTimeout` fallback. `ScalePage` stops playback in the root-change
+  handlers (not an effect on `root`: randomize can pick the same root) and
+  in an effect on family/mode/variant. The wheel's start button uses
+  `onClick`, not `onPointerDown`, so `Tone.start()` runs inside a real user
+  activation on touch devices.
 - **Stopwatch** (`src/hooks/useStopwatch.ts`): elapsed time is derived
   from `Date.now()` timestamp differences on start/pause/resume, not by
   counting interval ticks, so it stays accurate even if the tab is

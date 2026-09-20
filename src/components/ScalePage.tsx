@@ -7,16 +7,20 @@ import { useEffect, useMemo, useState } from "react";
 import { Fretboard } from "@/components/Fretboard";
 import { PracticeControls } from "@/components/PracticeControls";
 import { PracticeHistory } from "@/components/PracticeHistory";
+import { RootRandomizer } from "@/components/RootRandomizer";
 import { ScaleDashboard, type DisplayMode } from "@/components/ScaleDashboard";
 import { ScaleNav } from "@/components/ScaleNav";
+import type { WheelPlayback } from "@/components/ScaleWheel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useMetronome } from "@/hooks/useMetronome";
 import { useNotePlayer } from "@/hooks/useNotePlayer";
+import { useScalePlayer } from "@/hooks/useScalePlayer";
 import { useStopwatch } from "@/hooks/useStopwatch";
 import { useWakeLock } from "@/hooks/useWakeLock";
-import { getFamily, type ScaleFamily } from "@/lib/scales";
+import { buildPlaybackSequence } from "@/lib/scalePlayback";
+import { getFamily, getMode, type ScaleFamily } from "@/lib/scales";
 import { appendSession, loadSessions, type PracticeSession } from "@/lib/storage";
-import { buildFretboard, getDegreeLabel, type NoteName } from "@/lib/theory";
+import { buildFretboard, getDegreeLabel, randomRoot, type NoteName } from "@/lib/theory";
 
 type Props = {
   family: ScaleFamily;
@@ -60,8 +64,53 @@ export function ScalePage({ family, modeId, variantId }: Props) {
   const stopwatch = useStopwatch();
   const { playNote } = useNotePlayer();
 
+  const scalePlayer = useScalePlayer();
+  const { start: startPlayback, stop: stopPlayback } = scalePlayer;
+
+  // Scale playback deliberately doesn't count toward practiceActive: it's a
+  // short one-shot, not a session, so it doesn't hold the wake lock.
   const practiceActive = metronome.isPlaying || stopwatch.status === "running";
   useWakeLock(practiceActive);
+
+  const sequence = useMemo(
+    () => buildPlaybackSequence(root, family, modeId, variantId),
+    [root, family, modeId, variantId],
+  );
+  // A route change can render with the new mode's (possibly shorter) sequence
+  // for one pass before the effect below stops playback, so the step is
+  // looked up defensively rather than assumed in range.
+  const activeStep = scalePlayer.activeStepIndex === null ? undefined : sequence[scalePlayer.activeStepIndex];
+  const playback: WheelPlayback | null =
+    activeStep && scalePlayer.activeStepIndex !== null
+      ? {
+          activeNote: activeStep.noteName,
+          nextNote: sequence[scalePlayer.activeStepIndex + 1]?.noteName ?? null,
+          stepIndex: scalePlayer.activeStepIndex,
+          stepDurationSec: scalePlayer.stepDurationSec,
+        }
+      : null;
+
+  // Stopping lives in the handler, not an effect on `root`: randomize can
+  // land on the same root, which wouldn't change the value and so wouldn't
+  // fire an effect. Route params (family/mode/variant) only change through
+  // navigation, so an effect covers those.
+  const handleRootChange = (next: NoteName) => {
+    stopPlayback();
+    setRoot(next);
+  };
+  const handleRandomize = () => handleRootChange(randomRoot());
+
+  useEffect(() => {
+    stopPlayback();
+  }, [family.id, modeId, variantId, stopPlayback]);
+
+  const handleTogglePlayback = () => {
+    if (scalePlayer.isPlaying) {
+      stopPlayback();
+    } else {
+      void startPlayback(sequence, metronome.bpm);
+    }
+  };
 
   const handleStopwatchStop = () => {
     const durationSec = stopwatch.stop();
@@ -125,17 +174,22 @@ export function ScalePage({ family, modeId, variantId }: Props) {
         </div>
       </header>
 
-      <div className="flex w-full flex-1 flex-col items-center gap-6 px-4 pt-6 pb-24">
+      {/* Bottom padding clears the fixed footer: two stacked cards (one of them
+          possibly wrapped to two rows) below md, one row from md. */}
+      <div className="flex w-full flex-1 flex-col items-center gap-6 px-4 pt-6 pb-52 md:pb-28">
         <section className="flex w-full max-w-5xl flex-col">
           <ScaleDashboard
             root={root}
-            onRootChange={setRoot}
+            onRootChange={handleRootChange}
             family={family}
             modeId={modeId}
             displayMode={displayMode}
             onDisplayModeChange={setDisplayMode}
             selectedDegreeIndex={selectedDegreeIndex}
             onSelectedDegreeIndexChange={setSelectedDegreeIndex}
+            isPlaying={scalePlayer.isPlaying}
+            playback={playback}
+            onTogglePlayback={handleTogglePlayback}
           />
         </section>
 
@@ -145,6 +199,7 @@ export function ScalePage({ family, modeId, variantId }: Props) {
             displayMode={displayMode}
             onNotePlay={(note) => void playNote(note.freq)}
             selectedDegreeLabel={selectedDegreeLabel}
+            playingNoteName={playback?.activeNote ?? null}
           />
         </section>
 
@@ -153,7 +208,13 @@ export function ScalePage({ family, modeId, variantId }: Props) {
         </section>
       </div>
 
-      <footer className="fixed inset-x-0 bottom-0 z-30 w-full px-4 pb-4">
+      <footer className="fixed inset-x-0 bottom-0 z-30 flex w-full flex-col gap-2 px-4 pb-4 md:flex-row md:items-stretch">
+        <RootRandomizer
+          root={root}
+          familyName={family.displayName}
+          modeName={getMode(family, modeId)?.displayName ?? modeId}
+          onRandomize={handleRandomize}
+        />
         <PracticeControls
           bpm={metronome.bpm}
           onBpmChange={metronome.setBpm}

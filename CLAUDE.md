@@ -37,7 +37,9 @@ position, triad selection) is local `useState`.
   an extra note). `getScaleNotes(rootMidi, family, modeId, variantId?)`
   is the single source of truth for interval arithmetic — no other
   module computes scale intervals itself. `SCALE_FAMILIES` currently
-  ships Major, Harmonic Minor, Melodic Minor, Major Pentatonic, Minor
+  ships Major, Harmonic Minor, Harmonic Major, Melodic Minor, Melodic
+  Major (same seven scales as Melodic Minor, listed from Melodic Major so
+  it's findable by name), Major Pentatonic, Minor
   Pentatonic, and Blue (its own family: `blues-minor` `1 b3 4 b5 5 b7`
   and `blues-major` `1 2 b3 3 5 6`, the latter via a mode-level
   `intervalPattern` override). The variant mechanism is generic but no
@@ -62,19 +64,21 @@ position, triad selection) is local `useState`.
   highlighting generalizes to any `degreeCount === 7` family but not to
   Pentatonic — gate on `family.degreeCount === 7`.
 - **Scale reference data** (`src/lib/scaleReference.ts`): hand-authored
-  per-slot roman numeral, degree name, and chords for seven interval
+  per-slot roman numeral, degree name, and chords for nine interval
   patterns (the pentatonic scale's five rotations — Major/Minor
-  Pentatonic, Egyptian, Man Gong, Ritusen — plus Major/Minor Blues),
+  Pentatonic, Egyptian, Man Gong, Ritusen — plus Major/Minor Blues and
+  the 7-note Harmonic Major and Melodic Major),
   matched by the mode's resolved interval pattern, not by family/mode id
   (ids repeat across families, and the Major and Minor Pentatonic
-  families share the same five patterns). Every entry
+  families share the same five patterns; Melodic Minor's `mixolydian-b6`
+  shares Melodic Major's). Every pentatonic/blues entry
   also lists the diatonic slots it skips (some with no roman numeral or
-  chords, shown as `N/A`). "Skipped" is derived from the
+  chords, shown as `N/A`); Harmonic/Melodic Major skip none. "Skipped" is derived from the
   mode's intervals, never stored. Chords are root-relative (a row's chords may be rooted off its
   own note, e.g. `C/E`) and transposed at render time.
   `getScaleRows()` (`scaleRows.ts`) is the single source of table rows:
-  it returns the reference rows when the pattern has them, derives rows
-  for 7-degree families (triad-quality math only holds for 7 degrees),
+  it returns the reference rows when the pattern has them (even for a
+  7-note pattern), derives rows for the other 7-degree families/modes (triad-quality math only holds for 7 degrees),
   and otherwise falls back to Formula/Notes/Intervals only.
   `ScaleInfoTable.tsx` just renders those rows; new UI strings for it
   live in `scaleReferenceLabels.ts`. The Scale Wheel has no roman numerals,

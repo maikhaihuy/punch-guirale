@@ -62,4 +62,26 @@ describe("getScaleRows", () => {
     // Detail fields are empty placeholders, never invented values.
     expect(rows.every((r) => r.roman === "" && r.name === "" && r.chords.length === 0)).toBe(true);
   });
+
+  it("prefers reference rows over derived ones for a 7-degree pattern that has a reference", () => {
+    const { rows, showDetail } = getScaleRows("C", getFamily("harmonic-major")!, "harmonic-major");
+    expect(showDetail).toBe(true);
+    expect(rows.map((r) => r.roman)).toEqual(["I", "ii°", "iii", "iv", "V", "bVI+", "vii°"]);
+    // A derived row would list four augmented-quality suffixes here, not the reference's two.
+    expect(rows[5].chords).toEqual(["G#aug", "G#maj7#5"]);
+  });
+
+  it("derives rows for a Harmonic Major mode that has no reference", () => {
+    const { rows, showDetail } = getScaleRows("C", getFamily("harmonic-major")!, "dorian-b5");
+    expect(showDetail).toBe(true);
+    expect(rows).toHaveLength(7);
+    // Dorian b5 has a b5, so the tonic triad is diminished.
+    expect(rows[0].chords).toEqual(["Cdim", "Cm7b5"]);
+  });
+
+  it("gives Melodic Minor's mixolydian-b6 the Melodic Major rows", () => {
+    expect(getScaleRows("C", getFamily("melodic-minor")!, "mixolydian-b6")).toEqual(
+      getScaleRows("C", getFamily("melodic-major")!, "melodic-major"),
+    );
+  });
 });

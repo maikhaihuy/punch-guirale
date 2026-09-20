@@ -73,3 +73,40 @@ body {
   stroke-width: 2px;
   filter: drop-shadow(0 0 3px var(--accent));
 }
+
+/* Scale playback on the wheel. The ring marks the sounding note; the sweep is
+   drawn over the polygon edge to the next note (pathLength=1, so the dash math
+   is length-independent) and grows from the sounding note to the next one over
+   one step. Both ignore the pointer so they never block a tap. */
+.wheel-note--playing {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 4px var(--accent));
+  pointer-events: none;
+}
+
+.wheel-edge-sweep {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 3.5px;
+  stroke-linecap: round;
+  stroke-dasharray: 1 1;
+  stroke-dashoffset: 1;
+  animation-name: wheel-edge-sweep;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  pointer-events: none;
+}
+
+@keyframes wheel-edge-sweep {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel-edge-sweep {
+    display: none;
+  }
+}

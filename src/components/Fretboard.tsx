@@ -10,6 +10,9 @@ type Props = {
   displayMode: "note" | "degree";
   onNotePlay: (note: FretNote) => void;
   selectedDegreeLabel: string | null;
+  // Pitch class currently sounding from scale playback; echoed like a hover,
+  // but a real hover/touch takes precedence while it is active.
+  playingNoteName?: string | null;
 };
 
 const STRING_NAMES = ["E", "A", "D", "G", "B", "E"]; // low E to high E, matches OPEN_STRINGS order
@@ -146,11 +149,13 @@ export function Fretboard({
   displayMode,
   onNotePlay,
   selectedDegreeLabel,
+  playingNoteName = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleFretCount, setVisibleFretCount] = useState<number>(ZOOMED_IN_FRETS);
   const [containerWidth, setContainerWidth] = useState(0);
   const [hoveredNoteName, setHoveredNoteName] = useState<string | null>(null);
+  const echoNoteName = hoveredNoteName ?? playingNoteName;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -273,7 +278,7 @@ export function Fretboard({
                   const label = displayMode === "note" ? note.name : note.degree;
                   const isSelectedDegree =
                     selectedDegreeLabel !== null && note.degree === selectedDegreeLabel && !note.isRoot;
-                  const isEcho = note.name === hoveredNoteName;
+                  const isEcho = note.name === echoNoteName;
                   return (
                     <FretboardNote
                       key={`note-${stringIndex}-${note.fret}`}

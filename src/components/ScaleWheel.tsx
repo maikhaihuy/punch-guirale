@@ -100,7 +100,7 @@ export function ScaleWheel({ root, onRootChange, family, modeId }: Props) {
     .join(" ");
 
   return (
-    <div ref={wrapperRef} className="h-auto w-full max-w-96 min-w-40 shrink-0">
+    <div ref={wrapperRef} className="mx-auto h-auto w-full max-w-96 min-w-40">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label="Scale wheel" className="h-auto w-full">
         {CHROMATIC.map((note, index) => {
           const inScale = scaleNotes.has(note);

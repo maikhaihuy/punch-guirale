@@ -29,6 +29,8 @@ export type ScaleFamily = {
 const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
 const HARMONIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 11];
 const MELODIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 9, 11];
+const HARMONIC_MAJOR_INTERVALS = [0, 2, 4, 5, 7, 8, 11]; // 1 2 3 4 5 b6 7 (Ionian b6)
+const MELODIC_MAJOR_INTERVALS = [0, 2, 4, 5, 7, 8, 10]; // 1 2 3 4 5 b6 b7 (Mixolydian b6)
 const MAJOR_PENTATONIC_INTERVALS = [0, 2, 4, 7, 9];
 const MINOR_PENTATONIC_INTERVALS = [0, 3, 5, 7, 10];
 const BLUE_MINOR_INTERVALS = [0, 3, 5, 6, 7, 10]; // 1 b3 4 b5 5 b7
@@ -66,6 +68,21 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
     ],
   },
   {
+    id: "harmonic-major",
+    displayName: "Harmonic Major",
+    degreeCount: 7,
+    intervalPattern: HARMONIC_MAJOR_INTERVALS,
+    modes: [
+      { id: "harmonic-major", displayName: "Harmonic Major", rotationIndex: 0 },
+      { id: "dorian-b5", displayName: "Dorian ♭5", rotationIndex: 1 },
+      { id: "phrygian-b4", displayName: "Phrygian ♭4", rotationIndex: 2 },
+      { id: "lydian-b3", displayName: "Lydian ♭3", rotationIndex: 3 },
+      { id: "mixolydian-b2", displayName: "Mixolydian ♭2", rotationIndex: 4 },
+      { id: "lydian-augmented-sharp-2", displayName: "Lydian Augmented ♯2", rotationIndex: 5 },
+      { id: "locrian-bb7", displayName: "Locrian ♭♭7", rotationIndex: 6 },
+    ],
+  },
+  {
     id: "melodic-minor",
     displayName: "Melodic Minor",
     degreeCount: 7,
@@ -78,6 +95,23 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
       { id: "mixolydian-b6", displayName: "Mixolydian ♭6", rotationIndex: 4 },
       { id: "locrian-natural-2", displayName: "Locrian ♮2", rotationIndex: 5 },
       { id: "super-locrian", displayName: "Super Locrian", rotationIndex: 6 },
+    ],
+  },
+  {
+    // Same seven scales as Melodic Minor, listed from Melodic Major so it is
+    // findable by name (compare Major / Minor Pentatonic).
+    id: "melodic-major",
+    displayName: "Melodic Major",
+    degreeCount: 7,
+    intervalPattern: MELODIC_MAJOR_INTERVALS,
+    modes: [
+      { id: "melodic-major", displayName: "Melodic Major", rotationIndex: 0 },
+      { id: "locrian-natural-2", displayName: "Locrian ♮2", rotationIndex: 1 },
+      { id: "super-locrian", displayName: "Super Locrian", rotationIndex: 2 },
+      { id: "melodic-minor", displayName: "Melodic Minor", rotationIndex: 3 },
+      { id: "dorian-b2", displayName: "Dorian ♭2", rotationIndex: 4 },
+      { id: "lydian-augmented", displayName: "Lydian Augmented", rotationIndex: 5 },
+      { id: "lydian-dominant", displayName: "Lydian Dominant", rotationIndex: 6 },
     ],
   },
   {

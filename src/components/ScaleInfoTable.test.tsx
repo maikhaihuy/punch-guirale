@@ -163,4 +163,38 @@ describe("ScaleInfoTable", () => {
     const { rows } = render("major-pentatonic", "major-pentatonic", "D");
     expect(rows.find((r) => r[0].text === "3")![5].text).toBe("F#m, F#m7, D/F#");
   });
+
+  it("renders Harmonic Major and Melodic Major as 6-column, 7-row reference tables", () => {
+    const harmonic = render("harmonic-major", "harmonic-major", "C");
+    expect(harmonic.headers).toEqual(["Formula", "Notes", "Intervals", "Roman", "Degree", "Chords"]);
+    expect(harmonic.rows).toHaveLength(7);
+    expect(harmonic.rows.every((r) => !r[1].html.includes("Skip"))).toBe(true);
+    expect(harmonic.rows[5].map((c) => c.text)).toEqual([
+      "b6",
+      "G#",
+      "Minor sixth",
+      "bVI+",
+      "Submediant",
+      "G#aug, G#maj7#5",
+    ]);
+
+    const melodic = render("melodic-major", "melodic-major", "C");
+    expect(melodic.headers).toEqual(["Formula", "Notes", "Intervals", "Roman", "Degree", "Chords"]);
+    expect(melodic.rows).toHaveLength(7);
+    expect(melodic.rows[6].map((c) => c.text)).toEqual([
+      "b7",
+      "A#",
+      "Minor seventh",
+      "bVII",
+      "Subtonic",
+      "A#, A#maj7",
+    ]);
+  });
+
+  it("derives a 7-row table for a Harmonic Major mode without reference data", () => {
+    const { headers, rows } = render("harmonic-major", "dorian-b5", "C");
+    expect(headers).toEqual(["Formula", "Notes", "Intervals", "Roman", "Degree", "Chords"]);
+    expect(rows).toHaveLength(7);
+    expect(rows[0][5].text).toBe("Cdim, Cm7b5");
+  });
 });

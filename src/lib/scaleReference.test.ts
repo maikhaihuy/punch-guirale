@@ -351,3 +351,83 @@ describe("transposition", () => {
     expect(atG[3]).toEqual(["A#°7", "G7#9"]);
   });
 });
+
+describe("Harmonic Major and Melodic Major references", () => {
+  it("resolves each from its first mode, and Melodic Major from Melodic Minor's mixolydian-b6 too", () => {
+    const harmonicMajor = getScaleReference(intervalsOf("harmonic-major", "harmonic-major"));
+    const melodicMajor = getScaleReference(intervalsOf("melodic-major", "melodic-major"));
+    expect(harmonicMajor).toBeDefined();
+    expect(melodicMajor).toBeDefined();
+    expect(harmonicMajor).not.toBe(melodicMajor);
+    expect(getScaleReference(intervalsOf("melodic-minor", "mixolydian-b6"))).toBe(melodicMajor);
+  });
+
+  it("leaves the other modes of both families without a reference", () => {
+    expect(getScaleReference(intervalsOf("harmonic-major", "dorian-b5"))).toBeUndefined();
+    expect(getScaleReference(intervalsOf("melodic-major", "locrian-natural-2"))).toBeUndefined();
+    expect(getScaleReference(intervalsOf("harmonic-minor", "harmonic-minor"))).toBeUndefined();
+  });
+
+  it("lists 7 in-scale rows with no blue notes and no hints", () => {
+    for (const [family, mode] of [
+      ["harmonic-major", "harmonic-major"],
+      ["melodic-major", "melodic-major"],
+    ]) {
+      const rows = slots(family, mode, "C");
+      expect(rows.map((r) => r.offset), family).toEqual(
+        intervalsOf(family, mode),
+      );
+      expect(rows.some((r) => r.skipped || r.blueNote || r.hint !== undefined), family).toBe(false);
+    }
+  });
+
+  it("gives Harmonic Major's roman numerals, degree names, and chords on C", () => {
+    const rows = slots("harmonic-major", "harmonic-major", "C");
+    expect(rows.map((r) => [r.roman, r.name])).toEqual([
+      ["I", "Tonic"],
+      ["ii°", "Supertonic"],
+      ["iii", "Mediant"],
+      ["iv", "Subdominant"],
+      ["V", "Dominant"],
+      ["bVI+", "Submediant"],
+      ["vii°", "Leading Tone"],
+    ]);
+    expect(chordsByOffset("harmonic-major", "harmonic-major", "C")).toEqual({
+      0: ["C", "Cmaj7"],
+      2: ["Dm7b5"],
+      4: ["Em", "Em7"],
+      5: ["Fm", "Fm6", "Fm(maj7)"],
+      7: ["G", "G7", "G7b9"],
+      8: ["G#aug", "G#maj7#5"],
+      11: ["Bdim", "Bdim7"],
+    });
+  });
+
+  it("gives Melodic Major's roman numerals, degree names, and chords on C", () => {
+    const rows = slots("melodic-major", "melodic-major", "C");
+    expect(rows.map((r) => [r.roman, r.name])).toEqual([
+      ["I", "Tonic"],
+      ["ii°", "Supertonic"],
+      ["iii°", "Mediant"],
+      ["iv", "Subdominant"],
+      ["v", "Dominant"],
+      ["bVI+", "Submediant"],
+      ["bVII", "Subtonic"],
+    ]);
+    expect(chordsByOffset("melodic-major", "melodic-major", "C")).toEqual({
+      0: ["C", "C7"],
+      2: ["Dm7b5"],
+      4: ["Edim"],
+      5: ["Fm", "Fm7"],
+      7: ["Gm", "Gm7"],
+      8: ["G#aug"],
+      10: ["A#", "A#maj7"],
+    });
+  });
+
+  it("transposes Harmonic Major's chords to another root", () => {
+    const chords = chordsByOffset("harmonic-major", "harmonic-major", "D");
+    expect(chords[0]).toEqual(["D", "Dmaj7"]);
+    expect(chords[2]).toEqual(["Em7b5"]);
+  });
+});

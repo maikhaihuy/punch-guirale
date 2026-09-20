@@ -28,7 +28,6 @@ export function getScaleRows(root: NoteName, family: ScaleFamily, modeId: string
   // output then equals each degree's own semitone offset from root, in
   // the same order as getDiatonicDegrees.
   const semitoneOffsets = getScaleNotes(0, family, modeId);
-  console.log("getScaleRows", { root, family: family.id, modeId, semitoneOffsets });
 
   const reference = getReferenceSlots(root, semitoneOffsets);
   if (reference) return { rows: reference, showDetail: true };

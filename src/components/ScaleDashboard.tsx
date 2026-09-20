@@ -42,13 +42,24 @@ export function ScaleDashboard({
 
   return (
     <div className="flex w-full flex-col gap-3">
-      <section className="flex flex-wrap items-center gap-2">
-        <ScaleWheel root={root} onRootChange={onRootChange} family={family} modeId={modeId} />
-        <ScaleInfoTable root={root} family={family} modeId={modeId} />
+      {/* Stacked below md; from md the wheel gets ~2/5 and the table ~3/5 of
+          one row. min-w-0 lets the table's own overflow-x-auto scroll inside
+          its column instead of widening the page. */}
+      <section className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start">
+        <div className="min-w-0">
+          <ScaleWheel root={root} onRootChange={onRootChange} family={family} modeId={modeId} />
+        </div>
+        <div className="min-w-0">
+          <ScaleInfoTable root={root} family={family} modeId={modeId} />
+        </div>
       </section>
 
-      <section className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-6">
-        <div className="flex flex-col gap-1.5">
+      {/* Degrees take 8 of 10 parts of the row from md; the switch gets the
+          rest but never less than its own content, so its labels are never
+          clipped. The pills grow to fill their whole cell (flex-auto keeps
+          them wrapping by content width on narrow screens). */}
+      <section className="grid gap-3 md:grid-cols-[minmax(0,8fr)_minmax(max-content,2fr)] md:items-center md:gap-6">
+        <div className="flex min-w-0 flex-col gap-1.5">
           <span className="text-xs text-text-muted">Degrees</span>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -64,12 +75,12 @@ export function ScaleDashboard({
               None
             </button>
             {diatonicDegrees.map((degree, i) => (
-              <div key={degree.index} className="flex items-center gap-2">
+              <div key={degree.index} className="flex flex-auto items-center gap-2">
                 <button
                   type="button"
                   onClick={() => onSelectedDegreeIndexChange(degree.index)}
                   className={cn(
-                    "flex shrink-0 flex-col items-center gap-0.5 rounded-md px-2.5 py-1 text-sm font-medium leading-tight transition-colors",
+                    "flex flex-1 shrink-0 flex-col items-center gap-0.5 rounded-md px-2.5 py-1 text-sm font-medium leading-tight transition-colors",
                     degree.index === selectedDegreeIndex
                       ? "bg-text text-bg"
                       : "text-text/70 hover:bg-black/5 dark:hover:bg-white/10",
@@ -91,7 +102,7 @@ export function ScaleDashboard({
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm md:justify-end">
           <span>Note</span>
           <Switch
             checked={displayMode === "degree"}

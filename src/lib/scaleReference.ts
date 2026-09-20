@@ -3,13 +3,13 @@ import { getIntervalName } from "./scaleTerms";
 import { CHROMATIC, getChromaticDegreeLabel, type NoteName } from "./theory";
 
 // Static, hand-authored reference for the scales guitarists most often play
-// (the pentatonic scale's five rotations, plus Major/Minor Blues): for each
-// slot, a roman numeral, a degree name, and usable chords. Major/Minor
-// Pentatonic and both Blues scales also list the diatonic slots they skip.
-// The data is editorial (e.g. "v / V", "Rarely used", C7#9 listed under
-// bIII), so it isn't derivable from interval math - but skipped-vs-in-scale
-// status IS derivable, so it's computed from the mode's own intervals
-// rather than stored here.
+// (the pentatonic scale's five rotations, Major/Minor Blues, and Harmonic/
+// Melodic Major): for each slot, a roman numeral, a degree name, and usable
+// chords. Major/Minor Pentatonic and both Blues scales also list the
+// diatonic slots they skip. The data is editorial (e.g. "v / V", "Rarely
+// used", C7#9 listed under bIII), so it isn't derivable from interval math -
+// but skipped-vs-in-scale status IS derivable, so it's computed from the
+// mode's own intervals rather than stored here.
 
 // "not-applicable": a skipped slot the reference gives only a degree name -
 // no roman numeral, no chords.
@@ -109,6 +109,29 @@ const MINOR_BLUES_ROWS: readonly ReferenceRow[] = [
   { offset: 10, roman: "bVII", name: "Subtonic", chords: [chord(10, "7")] },
 ];
 
+// Both 7-note scales have a row for every slot, so none is skipped and the
+// table takes these rows instead of the derived triad-quality ones. Their
+// other rotations have no reference of their own and stay derived.
+const HARMONIC_MAJOR_ROWS: readonly ReferenceRow[] = [
+  { offset: 0, roman: "I", name: "Tonic", chords: [chord(0, ""), chord(0, "maj7")] },
+  { offset: 2, roman: "ii°", name: "Supertonic", chords: [chord(2, "m7b5")] },
+  { offset: 4, roman: "iii", name: "Mediant", chords: [chord(4, "m"), chord(4, "m7")] },
+  { offset: 5, roman: "iv", name: "Subdominant", chords: [chord(5, "m"), chord(5, "m6"), chord(5, "m(maj7)")] },
+  { offset: 7, roman: "V", name: "Dominant", chords: [chord(7, ""), chord(7, "7"), chord(7, "7b9")] },
+  { offset: 8, roman: "bVI+", name: "Submediant", chords: [chord(8, "aug"), chord(8, "maj7#5")] },
+  { offset: 11, roman: "vii°", name: "Leading Tone", chords: [chord(11, "dim"), chord(11, "dim7")] },
+];
+
+const MELODIC_MAJOR_ROWS: readonly ReferenceRow[] = [
+  { offset: 0, roman: "I", name: "Tonic", chords: [chord(0, ""), chord(0, "7")] },
+  { offset: 2, roman: "ii°", name: "Supertonic", chords: [chord(2, "m7b5")] },
+  { offset: 4, roman: "iii°", name: "Mediant", chords: [chord(4, "dim")] },
+  { offset: 5, roman: "iv", name: "Subdominant", chords: [chord(5, "m"), chord(5, "m7")] },
+  { offset: 7, roman: "v", name: "Dominant", chords: [chord(7, "m"), chord(7, "m7")] },
+  { offset: 8, roman: "bVI+", name: "Submediant", chords: [chord(8, "aug")] },
+  { offset: 10, roman: "bVII", name: "Subtonic", chords: [chord(10, ""), chord(10, "maj7")] },
+];
+
 // Keyed by the mode's resolved interval pattern rather than family/mode id:
 // ids repeat across families (`blues-minor` exists in both Major Pentatonic
 // and Blue), and a rotation of one family that IS another scale (Major
@@ -121,6 +144,8 @@ const REFERENCE_BY_PATTERN: Record<string, readonly ReferenceRow[]> = {
   "0,2,5,7,9": RITUSEN_ROWS,
   "0,2,3,4,7,9": MAJOR_BLUES_ROWS,
   "0,3,5,6,7,10": MINOR_BLUES_ROWS,
+  "0,2,4,5,7,8,11": HARMONIC_MAJOR_ROWS,
+  "0,2,4,5,7,8,10": MELODIC_MAJOR_ROWS,
 };
 
 // `intervals`: the mode's semitone offsets from its root, ascending (e.g.

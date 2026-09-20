@@ -9,7 +9,6 @@ type Props = {
   fretboard: FretNote[][]; // [stringIndex][fret], stringIndex 0 = low E .. 5 = high E
   displayMode: "note" | "degree";
   onNotePlay: (note: FretNote) => void;
-  triadDegreeLabels: Set<string> | null;
   selectedDegreeLabel: string | null;
 };
 
@@ -23,7 +22,7 @@ const TOP_PADDING = 20;
 const BOTTOM_PADDING = 20;
 const DOT_RADIUS = 14;
 const TOUCH_RADIUS = 22;
-const TRIAD_RING_RADIUS = 18;
+const DEGREE_HIGHLIGHT_RING_RADIUS = 18;
 const FALLBACK_FRET_WIDTH = 52;
 // Fret cells never shrink below this - once the container is too narrow to
 // fit `displayFretCount` cells at this width, the board overflows its
@@ -56,7 +55,6 @@ type FretboardNoteProps = {
   cy: number;
   label: string | undefined;
   displayMode: "note" | "degree";
-  showTriadRing: boolean;
   isSelectedDegree: boolean;
   isEcho: boolean;
   onPlay: () => void;
@@ -77,7 +75,6 @@ const FretboardNote = memo(function FretboardNote({
   cy,
   label,
   displayMode,
-  showTriadRing,
   isSelectedDegree,
   isEcho,
   onPlay,
@@ -128,12 +125,12 @@ const FretboardNote = memo(function FretboardNote({
       className="cursor-pointer"
     >
       <circle cx={cx} cy={cy} r={TOUCH_RADIUS} fill="transparent" />
-      {showTriadRing && (
+      {isSelectedDegree && (
         <circle
           cx={cx}
           cy={cy}
-          r={TRIAD_RING_RADIUS}
-          className={isSelectedDegree ? "fret-note--selected-degree" : "fret-note--triad"}
+          r={DEGREE_HIGHLIGHT_RING_RADIUS}
+          className="fret-note--selected-degree"
         />
       )}
       <circle cx={cx} cy={cy} r={DOT_RADIUS} className={dotClassName} strokeWidth={2} />
@@ -148,7 +145,6 @@ export function Fretboard({
   fretboard,
   displayMode,
   onNotePlay,
-  triadDegreeLabels,
   selectedDegreeLabel,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -275,11 +271,6 @@ export function Fretboard({
                 frets.map((note) => {
                   if (!note.inScale || note.fret < MIN_FRET || note.fret > maxVisibleFret) return null;
                   const label = displayMode === "note" ? note.name : note.degree;
-                  const showTriadRing =
-                    !!triadDegreeLabels &&
-                    note.degree !== undefined &&
-                    triadDegreeLabels.has(note.degree) &&
-                    !note.isRoot;
                   const isSelectedDegree =
                     selectedDegreeLabel !== null && note.degree === selectedDegreeLabel && !note.isRoot;
                   const isEcho = note.name === hoveredNoteName;
@@ -291,7 +282,6 @@ export function Fretboard({
                       cy={stringY(stringIndex)}
                       displayMode={displayMode}
                       label={label}
-                      showTriadRing={showTriadRing}
                       isSelectedDegree={isSelectedDegree}
                       isEcho={isEcho}
                       onPlay={() => onNotePlay(note)}

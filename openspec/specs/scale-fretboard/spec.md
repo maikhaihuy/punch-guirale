@@ -50,15 +50,17 @@ parameter (see `scale-family-routing`), not local component state — toggling
 the control updates the URL, and the component re-renders from the new
 `variantId` prop rather than owning its own on/off state.
 
-#### Scenario: Family with a variant (Minor Pentatonic + Blues)
-- **WHEN** `ScalePage` is given the Minor Pentatonic family with its `blue`
-  variant and the user enables the toggle
+#### Scenario: Family with a variant
+- **WHEN** `ScalePage` is given a family that defines a variant and the
+  user enables that variant's toggle (no family ships one in this change,
+  but the mechanism remains generic)
 - **THEN** the fretboard adds the highlighted note returned by
-  `getScaleNotes(..., variantId: 'blue')` without altering the base 5-note
+  `getScaleNotes(..., variantId: <id>)` without altering the base scale
   display when the toggle is off
 
-#### Scenario: Family without any variant (Major)
-- **WHEN** `ScalePage` is given the Major family
+#### Scenario: Family without any variant (Major, Blue)
+- **WHEN** `ScalePage` is given the Major family, or the new Blue family
+  (either `blues-minor` or `blues-major` mode)
 - **THEN** no variant toggle is rendered
 
 ### Requirement: Fretboard rendering

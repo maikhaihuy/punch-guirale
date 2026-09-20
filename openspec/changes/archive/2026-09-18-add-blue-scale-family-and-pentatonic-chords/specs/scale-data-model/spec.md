@@ -1,9 +1,5 @@
-# scale-data-model Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change restructure-scale-family-schema. Update Purpose after archive.
-
-## Requirements
 ### Requirement: Scale data SHALL be defined as reusable Family/Mode/Variant records
 The system SHALL represent every scale as a `ScaleFamily` record containing
 an interval pattern, a list of modes, and an optional list of variants
@@ -68,6 +64,8 @@ that pattern directly instead of rotating `family.intervalPattern`.
 - **THEN** the returned note list contains exactly the base scale notes with
   no inserted note
 
+## ADDED Requirements
+
 ### Requirement: A mode MAY own a complete interval pattern instead of rotating its family's pattern
 The `ScaleMode` type SHALL support an optional interval pattern field. When
 present, this pattern SHALL define that mode's scale degrees directly, and
@@ -106,15 +104,3 @@ Blues Major — degree formula `1 ♭3 4 5 ♭7` (semitone offsets
   mode with a given root
 - **THEN** the returned notes are that root plus semitone offsets
   `0, 3, 5, 7, 10`
-
-### Requirement: Existing Major scale data SHALL be migrated without behavior change
-The system SHALL express the Major family and its 7 modes using the new
-schema, and existing Milestone 1/2 features (fretboard render, Note/Degree
-toggle, triad highlight, pitch-echo) SHALL continue to function identically
-against the migrated data.
-
-#### Scenario: Major scale renders identically after migration
-- **WHEN** a user selects the Major family and any of its 7 modes after the
-  schema migration
-- **THEN** the displayed fretboard notes are identical to the notes shown
-  before the migration for the same keynote/mode selection

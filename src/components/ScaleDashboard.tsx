@@ -1,13 +1,11 @@
 "use client";
 
-import { cn } from "cn";
-import { Dice5 } from "lucide-react";
-
 import { ScaleInfoTable } from "@/components/ScaleInfoTable";
 import { ScaleWheel } from "@/components/ScaleWheel";
 import { Switch } from "@/components/ui/switch";
 import type { ScaleFamily } from "@/lib/scales";
-import { getDiatonicDegrees, getWholeHalfPattern, randomRoot, type NoteName } from "@/lib/theory";
+import { getDiatonicDegrees, getWholeHalfPattern, type NoteName } from "@/lib/theory";
+import { cn } from "cn";
 
 export type DisplayMode = "note" | "degree";
 
@@ -32,12 +30,12 @@ export function ScaleDashboard({
   selectedDegreeIndex,
   onSelectedDegreeIndexChange,
 }: Props) {
-  // Formula label and note name are degree-count-agnostic and render the
-  // same way for every family. Roman numeral (derived from triad quality)
-  // and the W/H step pattern only generalize to a 7-note family - tertian
-  // triads need 7 degrees to stack thirds, and pentatonic/blue gaps
-  // include 3-semitone jumps a binary W/H label can't represent - so both
-  // stay gated on isSevenDegree, same as theory.ts's own callers.
+  // Formula label, note name, and the step indicator between pills are
+  // degree-count-agnostic and render for every family (a gap other than a
+  // half or whole step shows its semitone count, e.g. "3"). Only the roman
+  // numeral, derived from triad quality, is 7-note-specific - tertian
+  // triads need 7 degrees to stack thirds - so it stays gated on
+  // isSevenDegree.
   const isSevenDegree = family.degreeCount === 7;
   const diatonicDegrees = getDiatonicDegrees(root, family, modeId);
   const wholeHalfPattern = getWholeHalfPattern(family, modeId);
@@ -46,15 +44,6 @@ export function ScaleDashboard({
     <div className="flex w-full flex-col gap-3">
       <section className="flex flex-wrap items-center gap-2">
         <ScaleWheel root={root} onRootChange={onRootChange} family={family} modeId={modeId} />
-        <button
-          type="button"
-          onClick={() => onRootChange(randomRoot())}
-          className="ml-2 flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-white transition-opacity hover:opacity-90"
-          aria-label="Randomize root note"
-          title="Randomize root note"
-        >
-          <Dice5 className="size-4" aria-hidden />
-        </button>
         <ScaleInfoTable root={root} family={family} modeId={modeId} />
       </section>
 
@@ -92,7 +81,7 @@ export function ScaleDashboard({
                     <span className="text-[10px] opacity-70">{degree.romanNumeral}</span>
                   )}
                 </button>
-                {isSevenDegree && i < diatonicDegrees.length - 1 && (
+                {i < diatonicDegrees.length - 1 && (
                   <span className="text-xs text-text-muted" aria-hidden="true">
                     {wholeHalfPattern[i]}
                   </span>

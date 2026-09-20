@@ -77,19 +77,36 @@ describe("getScaleNotes", () => {
     ).toEqual([0, 3, 5, 6, 7, 10]);
     expect(
       offsetsFrom(ROOT_MIDI, getScaleNotes(ROOT_MIDI, blue, "blues-major")),
-    ).toEqual([0, 3, 5, 7, 10]);
+    ).toEqual([0, 2, 3, 4, 7, 9]);
+  });
+
+  it("makes Blues Major at C the relative major of Blues Minor at A", () => {
+    const blue = getFamily("blue")!;
+    const pitchClasses = (root: number, modeId: string) =>
+      getScaleNotes(root, blue, modeId)
+        .map((n) => n % 12)
+        .sort((a, b) => a - b);
+    const C = 60;
+    const A = 57;
+    expect(pitchClasses(C, "blues-major")).toEqual(pitchClasses(A, "blues-minor"));
   });
 
   it("uses a mode's own interval-pattern override regardless of rotationIndex", () => {
     const blue = getFamily("blue")!;
     const bluesMajorMode = blue.modes.find((m) => m.id === "blues-major")!;
-    expect(bluesMajorMode.intervalPattern).toEqual([0, 3, 5, 7, 10]);
-    // blues-major's rotationIndex is unused/ignored once intervalPattern is set -
-    // rotating the family's 6-note blues-minor pattern at any index would still
-    // produce a 6-note result, never the 5-note override result below.
+    expect(bluesMajorMode.intervalPattern).toEqual([0, 2, 3, 4, 7, 9]);
+    // blues-major's rotationIndex is 0 and ignored once intervalPattern is
+    // set - rotating the family's blues-minor pattern at index 0 would give
+    // [0, 3, 5, 6, 7, 10], never the override result below.
     const notes = getScaleNotes(ROOT_MIDI, blue, "blues-major");
-    expect(offsetsFrom(ROOT_MIDI, notes)).toHaveLength(5);
-    expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 3, 5, 7, 10]);
+    expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 2, 3, 4, 7, 9]);
+  });
+
+  it("names the Major Pentatonic family's rotations distinctly from the Blue family", () => {
+    const majorPentatonic = getFamily("major-pentatonic")!;
+    const names = Object.fromEntries(majorPentatonic.modes.map((m) => [m.id, m.displayName]));
+    expect(names["blues-minor"]).toBe("Man Gong");
+    expect(names["blues-major"]).toBe("Ritusen");
   });
 
   it("leaves the base scale unaffected when no variant is given", () => {

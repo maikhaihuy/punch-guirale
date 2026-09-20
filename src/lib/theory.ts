@@ -31,6 +31,29 @@ function degreeLabelForSemitone(offset: number): string {
   return DEGREE_LABELS_BY_SEMITONE[((offset % 12) + 12) % 12];
 }
 
+// The 5 semitone offsets reachable from the root only by an accidental
+// interval (minor 2nd/3rd/6th/7th, or the tritone) have two conventional
+// names depending on which side of them you approach from; the other 7
+// (the major-scale degrees) have just one.
+const ACCIDENTAL_DUAL_LABELS: Record<number, readonly [string, string]> = {
+  1: ["b2", "#1"],
+  3: ["b3", "#2"],
+  6: ["b5", "#4"],
+  8: ["b6", "#5"],
+  10: ["b7", "#6"],
+};
+
+// Chromatic degree label for a semitone offset from root, independent of
+// any family/mode's scale membership - unlike degreeLabelForSemitone's
+// single-name convention (used for an already-resolved scale degree), this
+// returns both enharmonic names at the 5 accidental offsets, since the
+// wheel shows all 12 positions regardless of which scale is active.
+export function getChromaticDegreeLabel(offset: number): string[] {
+  const normalized = ((offset % 12) + 12) % 12;
+  const dual = ACCIDENTAL_DUAL_LABELS[normalized];
+  return dual ? [...dual] : [DEGREE_LABELS_BY_SEMITONE[normalized]];
+}
+
 // A rotated interval pattern for a family/mode - semitone offsets from
 // root, e.g. [0,2,3,5,7,9,10] for Dorian. Derived via getScaleNotes with a
 // rootMidi of 0 so the returned notes equal their own offsets, keeping
@@ -133,13 +156,19 @@ export function getDiatonicDegrees(
 }
 
 // Whole/half-step pattern between consecutive scale degrees (e.g.
-// ["W","W","H","W","W","W","H"] for Ionian). Only meaningful for 7-note
-// interval patterns, same as triad quality - callers gate on
-// family.degreeCount === 7 (see design.md "Non-goals").
+// ["W","W","H","W","W","W","H"] for Ionian). A 3-way gap check - "H" for a
+// 1-semitone gap, "W" for 2 semitones, otherwise the semitone count itself
+// (e.g. "3" for Pentatonic's root->b3) - so this is meaningful for any
+// degreeCount, not just 7-note families.
 export function getWholeHalfPattern(family: ScaleFamily, modeId: string): string[] {
   const intervals = modeIntervals(family, modeId);
   const n = intervals.length;
-  return intervals.map((_, i) => (intervalGap(intervals, i, (i + 1) % n) === 1 ? "H" : "W"));
+  return intervals.map((_, i) => {
+    const gap = intervalGap(intervals, i, (i + 1) % n);
+    if (gap === 1) return "H";
+    if (gap === 2) return "W";
+    return String(gap);
+  });
 }
 
 // The degree-label string (e.g. "b3") for a single scale degree index, so

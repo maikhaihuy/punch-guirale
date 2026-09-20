@@ -13,7 +13,8 @@ export type ScaleVariant = {
 export type ScaleMode = {
   id: string; // kebab-case, doubles as a URL route segment
   displayName: string;
-  rotationIndex: number; // index into intervalPattern to rotate from
+  rotationIndex: number; // index into intervalPattern to rotate from; ignored when intervalPattern is set
+  intervalPattern?: number[]; // full override, for a mode that isn't a rotation of its family's pattern (e.g. different degree count)
 };
 
 export type ScaleFamily = {
@@ -30,6 +31,8 @@ const HARMONIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 11];
 const MELODIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 9, 11];
 const MAJOR_PENTATONIC_INTERVALS = [0, 2, 4, 7, 9];
 const MINOR_PENTATONIC_INTERVALS = [0, 3, 5, 7, 10];
+const BLUE_MINOR_INTERVALS = [0, 3, 5, 6, 7, 10]; // 1 b3 4 b5 5 b7
+const BLUE_MAJOR_INTERVALS = [0, 3, 5, 7, 10]; // 1 b3 4 5 b7
 
 export const SCALE_FAMILIES: ScaleFamily[] = [
   {
@@ -102,8 +105,20 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
       { id: "man-gong", displayName: "Man Gong", rotationIndex: 3 },
       { id: "ritusen", displayName: "Ritusen", rotationIndex: 4 },
     ],
-    variants: [
-      { id: "blue", displayName: "Blues (add ♭5)", insertAfterDegree: 2, insertInterval: 6 },
+  },
+  {
+    id: "blue",
+    displayName: "Blue",
+    degreeCount: 6,
+    intervalPattern: BLUE_MINOR_INTERVALS,
+    modes: [
+      { id: "blues-minor", displayName: "Blues Minor", rotationIndex: 0 },
+      {
+        id: "blues-major",
+        displayName: "Blues Major",
+        rotationIndex: 0,
+        intervalPattern: BLUE_MAJOR_INTERVALS,
+      },
     ],
   },
 ];
@@ -148,9 +163,8 @@ export function getScaleNotes(
   const mode = getMode(family, modeId);
   if (!mode) throw new Error(`Unknown mode "${modeId}" for family "${family.id}"`);
 
-  const notes = rotateIntervals(family.intervalPattern, mode.rotationIndex).map(
-    (iv) => rootMidi + iv,
-  );
+  const pattern = mode.intervalPattern ?? rotateIntervals(family.intervalPattern, mode.rotationIndex);
+  const notes = pattern.map((iv) => rootMidi + iv);
   if (!variantId) return notes;
 
   const variant = getVariant(family, variantId);

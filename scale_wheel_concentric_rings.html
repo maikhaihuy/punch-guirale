@@ -1,0 +1,154 @@
+<div style="display:flex; flex-direction:column; align-items:center; gap:14px;">
+
+  <div style="display:flex; gap:8px;">
+    <button class="presetBtn" data-preset="major" style="font-size:12px; padding:5px 10px; border-radius:8px; border:1px solid #BA7517; background:#FAEEDA; color:#633806; font-weight:500; cursor:pointer;">Major (Ionian)</button>
+    <button class="presetBtn" data-preset="pent" style="font-size:12px; padding:5px 10px; border-radius:8px; border:0.5px solid var(--border); background:var(--surface-2); color:var(--text-secondary); cursor:pointer;">Minor pentatonic</button>
+  </div>
+
+  <svg id="wheel" viewBox="0 0 320 320" style="width:100%; max-width:360px; height:auto;"></svg>
+
+  <p style="font-size:11px; color:var(--text-muted); text-align:center; max-width:320px;">Vòng ngoài = 12 bậc chromatic (tên bậc + tên note theo key C), cung nối = W/H giữa các bậc đang active, vòng trong = hợp âm minh hoạ, tâm = random.</p>
+</div>
+
+<script>
+const degreeLabels = ["1","♭2/♯1","2","♭3/♯2","3","4","♭5/♯4","5","♭6/♯5","6","♭7/♯6","7"];
+const noteNames = ["C","C♯/D♭","D","D♯/E♭","E","F","F♯/G♭","G","G♯/A♭","A","A♯/B♭","B"];
+
+const presets = {
+  major: { active: [0,2,4,5,7,9,11], chords: {0:"I",2:"ii",4:"iii",5:"IV",7:"V",9:"vi",11:"vii°"} },
+  pent:  { active: [0,3,5,7,10],     chords: {0:"i",3:"♭III",5:"iv",7:"v",10:"♭VII"} }
+};
+
+let current = "major";
+const cx=160, cy=160, rOuter=125, rChord=78, rCenter=38;
+
+function polar(r, angleDeg){
+  const a = (angleDeg-90) * Math.PI/180;
+  return [cx + r*Math.cos(a), cy + r*Math.sin(a)];
+}
+
+function render(){
+  const svg = document.getElementById('wheel');
+  svg.innerHTML = "";
+  const p = presets[current];
+  const activeSet = new Set(p.active);
+
+  // W/H arcs between consecutive active degrees
+  const sorted = p.active.slice().sort((a,b)=>a-b);
+  sorted.forEach((deg,i)=>{
+    const next = sorted[(i+1)%sorted.length];
+    let gap = next-deg; if(gap<=0) gap+=12;
+    const label = gap===1 ? "H" : gap===2 ? "W" : (gap+"st");
+    const midAngle = ((deg*30)+(gap*30)/2) % 360;
+    const [mx,my] = polar(rOuter+16, midAngle);
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",mx); t.setAttribute("y",my+3);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-size","10");
+    t.setAttribute("fill","var(--text-muted)");
+    t.textContent = label;
+    svg.appendChild(t);
+
+    // connecting arc line on outer ring
+    const [x1,y1] = polar(rOuter, deg*30);
+    const [x2,y2] = polar(rOuter, next*30);
+    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    const large = gap>6?1:0;
+    path.setAttribute("d", "M "+x1+" "+y1+" A "+rOuter+" "+rOuter+" 0 "+large+" 1 "+x2+" "+y2);
+    path.setAttribute("fill","none");
+    path.setAttribute("stroke","#BA7517");
+    path.setAttribute("stroke-width","1.5");
+    path.setAttribute("opacity","0.5");
+    svg.appendChild(path);
+  });
+
+  // outer ring: degree + note
+  for(let i=0;i<12;i++){
+    const isActive = activeSet.has(i);
+    const [x,y] = polar(rOuter, i*30);
+    const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx",x); c.setAttribute("cy",y); c.setAttribute("r", isActive?22:16);
+    c.setAttribute("fill", isActive ? "#FAEEDA" : "var(--surface-2)");
+    c.setAttribute("stroke", isActive ? "#BA7517" : "var(--border)");
+    c.setAttribute("stroke-width","1.2");
+    g.appendChild(c);
+    const t1 = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t1.setAttribute("x",x); t1.setAttribute("y", isActive? y-2 : y+4);
+    t1.setAttribute("text-anchor","middle");
+    t1.setAttribute("font-size", isActive?"11":"9");
+    t1.setAttribute("fill", isActive ? "#633806" : "var(--text-muted)");
+    t1.setAttribute("font-weight", isActive?"600":"400");
+    t1.textContent = noteNames[i];
+    g.appendChild(t1);
+    if(isActive){
+      const t2 = document.createElementNS("http://www.w3.org/2000/svg","text");
+      t2.setAttribute("x",x); t2.setAttribute("y",y+10);
+      t2.setAttribute("text-anchor","middle");
+      t2.setAttribute("font-size","8");
+      t2.setAttribute("fill","#8a5a12");
+      t2.textContent = degreeLabels[i];
+      g.appendChild(t2);
+    }
+    svg.appendChild(g);
+  }
+
+  // inner ring: chords at active degrees
+  p.active.forEach(i=>{
+    const [x,y] = polar(rChord, i*30);
+    const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    c.setAttribute("cx",x); c.setAttribute("cy",y); c.setAttribute("r","15");
+    c.setAttribute("fill","var(--surface-1)");
+    c.setAttribute("stroke","var(--border)");
+    c.setAttribute("stroke-width","1");
+    svg.appendChild(c);
+    const t = document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",x); t.setAttribute("y",y+3);
+    t.setAttribute("text-anchor","middle");
+    t.setAttribute("font-size","9");
+    t.setAttribute("fill","var(--text-primary)");
+    t.textContent = p.chords[i] || "";
+    svg.appendChild(t);
+  });
+
+  // center random hub
+  const hub = document.createElementNS("http://www.w3.org/2000/svg","circle");
+  hub.setAttribute("cx",cx); hub.setAttribute("cy",cy); hub.setAttribute("r",rCenter);
+  hub.setAttribute("fill","#BA7517");
+  hub.style.cursor = "pointer";
+  hub.onclick = ()=>{
+    current = current==="major" ? "pent" : "major";
+    document.querySelectorAll('.presetBtn').forEach(b=>{
+      const on = b.dataset.preset===current;
+      b.style.border = on ? "1px solid #BA7517" : "0.5px solid var(--border)";
+      b.style.background = on ? "#FAEEDA" : "var(--surface-2)";
+      b.style.color = on ? "#633806" : "var(--text-secondary)";
+    });
+    render();
+  };
+  svg.appendChild(hub);
+  const hubText = document.createElementNS("http://www.w3.org/2000/svg","text");
+  hubText.setAttribute("x",cx); hubText.setAttribute("y",cy+5);
+  hubText.setAttribute("text-anchor","middle");
+  hubText.setAttribute("font-size","18");
+  hubText.setAttribute("fill","white");
+  hubText.style.pointerEvents = "none";
+  hubText.textContent = "🎲";
+  svg.appendChild(hubText);
+}
+
+document.querySelectorAll('.presetBtn').forEach(btn=>{
+  btn.onclick = ()=>{
+    current = btn.dataset.preset;
+    document.querySelectorAll('.presetBtn').forEach(b=>{
+      const on = b===btn;
+      b.style.border = on ? "1px solid #BA7517" : "0.5px solid var(--border)";
+      b.style.background = on ? "#FAEEDA" : "var(--surface-2)";
+      b.style.color = on ? "#633806" : "var(--text-secondary)";
+    });
+    render();
+  };
+});
+
+render();
+</script>

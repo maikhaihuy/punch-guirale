@@ -13,7 +13,8 @@ export type ScaleVariant = {
 export type ScaleMode = {
   id: string; // kebab-case, doubles as a URL route segment
   displayName: string;
-  rotationIndex: number; // index into intervalPattern to rotate from
+  rotationIndex: number; // index into intervalPattern to rotate from; ignored when intervalPattern is set
+  intervalPattern?: number[]; // full override, for a mode that isn't a rotation of its family's pattern (e.g. different degree count)
 };
 
 export type ScaleFamily = {
@@ -28,8 +29,12 @@ export type ScaleFamily = {
 const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
 const HARMONIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 11];
 const MELODIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 9, 11];
+const HARMONIC_MAJOR_INTERVALS = [0, 2, 4, 5, 7, 8, 11]; // 1 2 3 4 5 b6 7 (Ionian b6)
+const MELODIC_MAJOR_INTERVALS = [0, 2, 4, 5, 7, 8, 10]; // 1 2 3 4 5 b6 b7 (Mixolydian b6)
 const MAJOR_PENTATONIC_INTERVALS = [0, 2, 4, 7, 9];
 const MINOR_PENTATONIC_INTERVALS = [0, 3, 5, 7, 10];
+const BLUE_MINOR_INTERVALS = [0, 3, 5, 6, 7, 10]; // 1 b3 4 b5 5 b7
+const BLUE_MAJOR_INTERVALS = [0, 2, 3, 4, 7, 9]; // 1 2 b3 3 5 6
 
 export const SCALE_FAMILIES: ScaleFamily[] = [
   {
@@ -63,6 +68,21 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
     ],
   },
   {
+    id: "harmonic-major",
+    displayName: "Harmonic Major",
+    degreeCount: 7,
+    intervalPattern: HARMONIC_MAJOR_INTERVALS,
+    modes: [
+      { id: "harmonic-major", displayName: "Harmonic Major", rotationIndex: 0 },
+      { id: "dorian-b5", displayName: "Dorian ♭5", rotationIndex: 1 },
+      { id: "phrygian-b4", displayName: "Phrygian ♭4", rotationIndex: 2 },
+      { id: "lydian-b3", displayName: "Lydian ♭3", rotationIndex: 3 },
+      { id: "mixolydian-b2", displayName: "Mixolydian ♭2", rotationIndex: 4 },
+      { id: "lydian-augmented-sharp-2", displayName: "Lydian Augmented ♯2", rotationIndex: 5 },
+      { id: "locrian-bb7", displayName: "Locrian ♭♭7", rotationIndex: 6 },
+    ],
+  },
+  {
     id: "melodic-minor",
     displayName: "Melodic Minor",
     degreeCount: 7,
@@ -78,6 +98,23 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
     ],
   },
   {
+    // Same seven scales as Melodic Minor, listed from Melodic Major so it is
+    // findable by name (compare Major / Minor Pentatonic).
+    id: "melodic-major",
+    displayName: "Melodic Major",
+    degreeCount: 7,
+    intervalPattern: MELODIC_MAJOR_INTERVALS,
+    modes: [
+      { id: "melodic-major", displayName: "Melodic Major", rotationIndex: 0 },
+      { id: "locrian-natural-2", displayName: "Locrian ♮2", rotationIndex: 1 },
+      { id: "super-locrian", displayName: "Super Locrian", rotationIndex: 2 },
+      { id: "melodic-minor", displayName: "Melodic Minor", rotationIndex: 3 },
+      { id: "dorian-b2", displayName: "Dorian ♭2", rotationIndex: 4 },
+      { id: "lydian-augmented", displayName: "Lydian Augmented", rotationIndex: 5 },
+      { id: "lydian-dominant", displayName: "Lydian Dominant", rotationIndex: 6 },
+    ],
+  },
+  {
     id: "major-pentatonic",
     displayName: "Major Pentatonic",
     degreeCount: 5,
@@ -85,8 +122,11 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
     modes: [
       { id: "major-pentatonic", displayName: "Major Pentatonic", rotationIndex: 0 },
       { id: "egyptian", displayName: "Egyptian", rotationIndex: 1 },
-      { id: "blues-minor", displayName: "Blues Minor", rotationIndex: 2 },
-      { id: "blues-major", displayName: "Blues Major", rotationIndex: 3 },
+      // Ids keep their old "blues-*" names so existing URLs still resolve;
+      // these are the same patterns the Minor Pentatonic family lists as
+      // Man Gong / Ritusen, not the real Blue family's scales.
+      { id: "blues-minor", displayName: "Man Gong", rotationIndex: 2 },
+      { id: "blues-major", displayName: "Ritusen", rotationIndex: 3 },
       { id: "minor-pentatonic-mode", displayName: "Minor Pentatonic (mode 5)", rotationIndex: 4 },
     ],
   },
@@ -102,8 +142,20 @@ export const SCALE_FAMILIES: ScaleFamily[] = [
       { id: "man-gong", displayName: "Man Gong", rotationIndex: 3 },
       { id: "ritusen", displayName: "Ritusen", rotationIndex: 4 },
     ],
-    variants: [
-      { id: "blue", displayName: "Blues (add ♭5)", insertAfterDegree: 2, insertInterval: 6 },
+  },
+  {
+    id: "blue",
+    displayName: "Blue",
+    degreeCount: 6,
+    intervalPattern: BLUE_MINOR_INTERVALS,
+    modes: [
+      { id: "blues-minor", displayName: "Blues Minor", rotationIndex: 0 },
+      {
+        id: "blues-major",
+        displayName: "Blues Major",
+        rotationIndex: 0,
+        intervalPattern: BLUE_MAJOR_INTERVALS,
+      },
     ],
   },
 ];
@@ -148,9 +200,8 @@ export function getScaleNotes(
   const mode = getMode(family, modeId);
   if (!mode) throw new Error(`Unknown mode "${modeId}" for family "${family.id}"`);
 
-  const notes = rotateIntervals(family.intervalPattern, mode.rotationIndex).map(
-    (iv) => rootMidi + iv,
-  );
+  const pattern = mode.intervalPattern ?? rotateIntervals(family.intervalPattern, mode.rotationIndex);
+  const notes = pattern.map((iv) => rootMidi + iv);
   if (!variantId) return notes;
 
   const variant = getVariant(family, variantId);

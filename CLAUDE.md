@@ -12,8 +12,9 @@ Package manager is pnpm (`packageManager: pnpm@10.12.1` in package.json).
 - `pnpm build` — production build
 - `pnpm start` — run the production build
 - `pnpm lint` — ESLint (flat config, `eslint-config-next` core-web-vitals + typescript)
-
-There is no test suite configured in this repo.
+- `pnpm test` — Vitest (`vitest run`); tests sit next to the code
+  (`src/lib/*.test.ts`, `src/components/*.test.tsx`), `@/` is aliased in
+  `vitest.config.ts`. Component tests use `renderToStaticMarkup`, no DOM.
 
 ## Architecture
 
@@ -36,8 +37,13 @@ position, triad selection) is local `useState`.
   an extra note). `getScaleNotes(rootMidi, family, modeId, variantId?)`
   is the single source of truth for interval arithmetic — no other
   module computes scale intervals itself. `SCALE_FAMILIES` currently
-  ships Major, Harmonic Minor, Melodic Minor, Major Pentatonic, and
-  Minor Pentatonic (with a `blue` variant). To add a new family: add a
+  ships Major, Harmonic Minor, Harmonic Major, Melodic Minor, Melodic
+  Major (same seven scales as Melodic Minor, listed from Melodic Major so
+  it's findable by name), Major Pentatonic, Minor
+  Pentatonic, and Blue (its own family: `blues-minor` `1 b3 4 b5 5 b7`
+  and `blues-major` `1 2 b3 3 5 6`, the latter via a mode-level
+  `intervalPattern` override). The variant mechanism is generic but no
+  family ships a variant. To add a new family: add a
   `ScaleFamily` entry with kebab-case ids (ids double as URL route
   segments, so no separate slug transform) — no other code changes are
   required for a diatonic (any degreeCount) family to become selectable
@@ -57,6 +63,29 @@ position, triad selection) is local `useState`.
   (Harmonic Minor's interval spacing differs); diatonic triad
   highlighting generalizes to any `degreeCount === 7` family but not to
   Pentatonic — gate on `family.degreeCount === 7`.
+- **Scale reference data** (`src/lib/scaleReference.ts`): hand-authored
+  per-slot roman numeral, degree name, and chords for nine interval
+  patterns (the pentatonic scale's five rotations — Major/Minor
+  Pentatonic, Egyptian, Man Gong, Ritusen — plus Major/Minor Blues and
+  the 7-note Harmonic Major and Melodic Major),
+  matched by the mode's resolved interval pattern, not by family/mode id
+  (ids repeat across families, and the Major and Minor Pentatonic
+  families share the same five patterns; Melodic Minor's `mixolydian-b6`
+  shares Melodic Major's). Every pentatonic/blues entry
+  also lists the diatonic slots it skips (some with no roman numeral or
+  chords, shown as `N/A`); Harmonic/Melodic Major skip none. "Skipped" is derived from the
+  mode's intervals, never stored. Chords are root-relative (a row's chords may be rooted off its
+  own note, e.g. `C/E`) and transposed at render time.
+  `getScaleRows()` (`scaleRows.ts`) is the single source of table rows:
+  it returns the reference rows when the pattern has them (even for a
+  7-note pattern), derives rows for the other 7-degree families/modes (triad-quality math only holds for 7 degrees),
+  and otherwise falls back to Formula/Notes/Intervals only.
+  `ScaleInfoTable.tsx` just renders those rows; new UI strings for it
+  live in `scaleReferenceLabels.ts`. The Scale Wheel has no roman numerals,
+  chords, or W/H labels — those live in the Degrees row and this table.
+  The wheel's center hub is the scale play/stop button (not randomize —
+  randomize-root lives in the bottom bar's `RootRandomizer`, next to a
+  key + family/mode readout).
 - **Client-only persistence** (`src/lib/storage.ts`): practice sessions
   are read/written via `localStorage`, guarded by `typeof window`. Any
   state seeded from `loadSessions()` must be initialized empty and
@@ -70,6 +99,20 @@ position, triad selection) is local `useState`.
   throttled in background tabs. `Tone` is dynamically imported and
   `Tone.start()` is only ever called from inside the user's click
   handler (`start()`), per browser autoplay policy — never on mount.
+- **Scale playback** (`src/hooks/useScalePlayer.ts`, sequence from
+  `src/lib/scalePlayback.ts`): plays root → octave → root, one note per beat
+  at the metronome BPM read at start. It deliberately does **not** use
+  `Tone.Transport` (`useMetronome.stop()` calls `transport.stop()`, which
+  would kill it) or `useNotePlayer`'s synth (a monophonic Tone source throws
+  if a start time is earlier than one already scheduled, which a fretboard
+  tap mid-playback would be) — each run gets its own synth, scheduled on the
+  audio clock, with UI state driven by `Tone.getDraw()`. `Draw` drops
+  callbacks >0.25s late (hidden tab), so the end-of-run reset also has a
+  `setTimeout` fallback. `ScalePage` stops playback in the root-change
+  handlers (not an effect on `root`: randomize can pick the same root) and
+  in an effect on family/mode/variant. The wheel's start button uses
+  `onClick`, not `onPointerDown`, so `Tone.start()` runs inside a real user
+  activation on touch devices.
 - **Stopwatch** (`src/hooks/useStopwatch.ts`): elapsed time is derived
   from `Date.now()` timestamp differences on start/pause/resume, not by
   counting interval ticks, so it stays accurate even if the tab is

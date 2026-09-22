@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getFamily, getScaleNotes } from "./scales";
+import { getScaleNoteNames } from "./theory";
 
 const ROOT_MIDI = 60; // C4, arbitrary anchor - only offsets from it matter
 
@@ -70,10 +71,43 @@ describe("getScaleNotes", () => {
     }
   });
 
-  it("inserts the blue (b5) variant at the correct position for Minor Pentatonic", () => {
-    const minorPentatonic = getFamily("minor-pentatonic")!;
-    const notes = getScaleNotes(ROOT_MIDI, minorPentatonic, "minor-pentatonic", "blue");
-    expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 3, 5, 6, 7, 10]);
+  it("computes the Blue family's Blues Minor and Blues Major modes", () => {
+    const blue = getFamily("blue")!;
+    expect(
+      offsetsFrom(ROOT_MIDI, getScaleNotes(ROOT_MIDI, blue, "blues-minor")),
+    ).toEqual([0, 3, 5, 6, 7, 10]);
+    expect(
+      offsetsFrom(ROOT_MIDI, getScaleNotes(ROOT_MIDI, blue, "blues-major")),
+    ).toEqual([0, 2, 3, 4, 7, 9]);
+  });
+
+  it("makes Blues Major at C the relative major of Blues Minor at A", () => {
+    const blue = getFamily("blue")!;
+    const pitchClasses = (root: number, modeId: string) =>
+      getScaleNotes(root, blue, modeId)
+        .map((n) => n % 12)
+        .sort((a, b) => a - b);
+    const C = 60;
+    const A = 57;
+    expect(pitchClasses(C, "blues-major")).toEqual(pitchClasses(A, "blues-minor"));
+  });
+
+  it("uses a mode's own interval-pattern override regardless of rotationIndex", () => {
+    const blue = getFamily("blue")!;
+    const bluesMajorMode = blue.modes.find((m) => m.id === "blues-major")!;
+    expect(bluesMajorMode.intervalPattern).toEqual([0, 2, 3, 4, 7, 9]);
+    // blues-major's rotationIndex is 0 and ignored once intervalPattern is
+    // set - rotating the family's blues-minor pattern at index 0 would give
+    // [0, 3, 5, 6, 7, 10], never the override result below.
+    const notes = getScaleNotes(ROOT_MIDI, blue, "blues-major");
+    expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 2, 3, 4, 7, 9]);
+  });
+
+  it("names the Major Pentatonic family's rotations distinctly from the Blue family", () => {
+    const majorPentatonic = getFamily("major-pentatonic")!;
+    const names = Object.fromEntries(majorPentatonic.modes.map((m) => [m.id, m.displayName]));
+    expect(names["blues-minor"]).toBe("Man Gong");
+    expect(names["blues-major"]).toBe("Ritusen");
   });
 
   it("leaves the base scale unaffected when no variant is given", () => {
@@ -82,13 +116,80 @@ describe("getScaleNotes", () => {
     expect(offsetsFrom(ROOT_MIDI, withoutVariant)).toEqual([0, 3, 5, 7, 10]);
   });
 
-  it("ignores an unrecognized variant id for the family", () => {
+  it("ignores an unrecognized variant id for a family with no variants", () => {
     const minorPentatonic = getFamily("minor-pentatonic")!;
     const notes = getScaleNotes(ROOT_MIDI, minorPentatonic, "minor-pentatonic", "not-a-real-variant");
     expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 3, 5, 7, 10]);
   });
 
+  it("ignores the now-removed blue variant id on Minor Pentatonic", () => {
+    const minorPentatonic = getFamily("minor-pentatonic")!;
+    const notes = getScaleNotes(ROOT_MIDI, minorPentatonic, "minor-pentatonic", "blue");
+    expect(offsetsFrom(ROOT_MIDI, notes)).toEqual([0, 3, 5, 7, 10]);
+  });
+
   it("throws for an unknown mode id", () => {
     expect(() => getScaleNotes(ROOT_MIDI, major, "not-a-mode")).toThrow();
+  });
+});
+
+describe("Harmonic Major and Melodic Major families", () => {
+  const harmonicMajor = getFamily("harmonic-major")!;
+  const melodicMajor = getFamily("melodic-major")!;
+  const intervals = (family: typeof harmonicMajor, modeId: string) =>
+    offsetsFrom(ROOT_MIDI, getScaleNotes(ROOT_MIDI, family, modeId));
+
+  it("computes each family's first mode on C", () => {
+    expect(getScaleNoteNames("C", harmonicMajor, "harmonic-major")).toEqual([
+      "C", "D", "E", "F", "G", "G#", "B",
+    ]);
+    expect(getScaleNoteNames("C", melodicMajor, "melodic-major")).toEqual([
+      "C", "D", "E", "F", "G", "G#", "A#",
+    ]);
+  });
+
+  it("lists 7 modes with 7 distinct interval patterns per family", () => {
+    for (const family of [harmonicMajor, melodicMajor]) {
+      expect(family.modes, family.id).toHaveLength(7);
+      const patterns = family.modes.map((m) => intervals(family, m.id).join(","));
+      expect(new Set(patterns).size, family.id).toBe(7);
+    }
+  });
+
+  it("computes the Harmonic Major modes as rotations", () => {
+    const expected: Record<string, number[]> = {
+      "harmonic-major": [0, 2, 4, 5, 7, 8, 11],
+      "dorian-b5": [0, 2, 3, 5, 6, 9, 10],
+      "phrygian-b4": [0, 1, 3, 4, 7, 8, 10],
+      "lydian-b3": [0, 2, 3, 6, 7, 9, 11],
+      "mixolydian-b2": [0, 1, 4, 5, 7, 9, 10],
+      "lydian-augmented-sharp-2": [0, 3, 4, 6, 8, 9, 11],
+      "locrian-bb7": [0, 1, 3, 5, 6, 8, 9],
+    };
+    for (const [modeId, pattern] of Object.entries(expected)) {
+      expect(intervals(harmonicMajor, modeId), modeId).toEqual(pattern);
+    }
+  });
+
+  it("computes the Melodic Major modes as rotations", () => {
+    const expected: Record<string, number[]> = {
+      "melodic-major": [0, 2, 4, 5, 7, 8, 10],
+      "locrian-natural-2": [0, 2, 3, 5, 6, 8, 10],
+      "super-locrian": [0, 1, 3, 4, 6, 8, 10],
+      "melodic-minor": [0, 2, 3, 5, 7, 9, 11],
+      "dorian-b2": [0, 1, 3, 5, 7, 9, 10],
+      "lydian-augmented": [0, 2, 4, 6, 8, 9, 11],
+      "lydian-dominant": [0, 2, 4, 6, 7, 9, 10],
+    };
+    for (const [modeId, pattern] of Object.entries(expected)) {
+      expect(intervals(melodicMajor, modeId), modeId).toEqual(pattern);
+    }
+  });
+
+  it("keeps Melodic Minor's mixolydian-b6 mode, equal to Melodic Major's first mode", () => {
+    const melodicMinor = getFamily("melodic-minor")!;
+    expect(intervals(melodicMinor, "mixolydian-b6")).toEqual(
+      intervals(melodicMajor, "melodic-major"),
+    );
   });
 });
